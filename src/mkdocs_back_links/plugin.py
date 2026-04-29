@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -22,6 +23,8 @@ from .render import render_backlinks_section, render_local_graph_data, render_se
 
 
 _ASSETS_DIR = Path(__file__).parent / "assets"
+
+_HEADING_TAG_RE = re.compile(r'<h([1-6])\s+id="([^"]+)"[^>]*>')
 
 
 class BackLinksPlugin(BasePlugin[BackLinksConfig]):
@@ -68,12 +71,71 @@ class BackLinksPlugin(BasePlugin[BackLinksConfig]):
         self._inverse_section = inverse_section_index(self._edges)
         return env
 
+    def _build_section_blocks(self, page_id: str) -> dict[str, str]:
+        """Map slug -> rendered <aside> for sections of `page_id` that have inbound links."""
+        from .render import render_section_backlinks
+        out: dict[str, str] = {}
+        for section in self._sections.get(page_id, []):
+            entries_raw = self._inverse_section.get((page_id, section.slug), [])
+            if not entries_raw:
+                continue
+            entries = []
+            for src_page, src_section in entries_raw:
+                entries.append({
+                    "source_page": src_page,
+                    "source_section": src_section,
+                    "page_title": self._titles.get(src_page, src_page),
+                    "page_url": self._urls.get(src_page, "/" + src_page),
+                    "section_title_lookup": self._section_titles.get((src_page, src_section)) if src_section else None,
+                })
+            out[section.slug] = render_section_backlinks(
+                section_title=section.title,
+                section_slug=section.slug,
+                target_page=page_id,
+                entries=entries,
+                collapse_threshold=self.config.backlinks.section_collapse_threshold,
+            )
+        return out
+
+    def _inject_section_blocks(self, html: str, page_id: str) -> str:
+        """Insert <aside> blocks just before the next heading boundary at same-or-higher level."""
+        blocks = self._build_section_blocks(page_id)
+        if not blocks:
+            return html
+
+        matches = list(_HEADING_TAG_RE.finditer(html))
+        insertions: list[tuple[int, str]] = []
+        for i, m in enumerate(matches):
+            slug = m.group(2)
+            level = int(m.group(1))
+            block = blocks.get(slug)
+            if block is None:
+                continue
+            insert_at = len(html)
+            for nxt in matches[i + 1:]:
+                if int(nxt.group(1)) <= level:
+                    insert_at = nxt.start()
+                    break
+            insertions.append((insert_at, block))
+
+        if not insertions:
+            return html
+
+        insertions.sort(key=lambda it: it[0], reverse=True)
+        for offset, block in insertions:
+            html = html[:offset] + block + html[offset:]
+        return html
+
     def on_page_context(self, context, *, page: Page, config, nav):
         page_id = page.file.src_uri
         overrides = self._page_overrides.get(page_id, {})
 
         backlinks_enabled = self.config.backlinks.enabled and overrides.get("backlinks", True)
         graph_enabled = self.config.graph.enabled and overrides.get("graph", True)
+
+        # Insert per-section backlinks blocks into the rendered HTML at the right boundaries.
+        if backlinks_enabled and page.content:
+            page.content = self._inject_section_blocks(page.content, page_id)
 
         extra = ""
         if backlinks_enabled:
