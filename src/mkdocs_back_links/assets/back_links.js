@@ -45,6 +45,36 @@
     );
   }
 
+  function fitToView(svgEl, zoom, nodes, width, height) {
+    const d3 = window.d3;
+    if (!d3 || !nodes.length) return;
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const n of nodes) {
+      if (typeof n.x !== "number" || typeof n.y !== "number") continue;
+      if (n.x < minX) minX = n.x;
+      if (n.x > maxX) maxX = n.x;
+      if (n.y < minY) minY = n.y;
+      if (n.y > maxY) maxY = n.y;
+    }
+    if (!isFinite(minX)) return;
+    const bboxW = Math.max(maxX - minX, 1);
+    const bboxH = Math.max(maxY - minY, 1);
+    const padding = 40;
+    const scale = Math.min(
+      (width - padding * 2) / bboxW,
+      (height - padding * 2) / bboxH,
+      2
+    );
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    const tx = width / 2 - cx * scale;
+    const ty = height / 2 - cy * scale;
+    d3.select(svgEl).call(
+      zoom.transform,
+      d3.zoomIdentity.translate(tx, ty).scale(scale)
+    );
+  }
+
   function renderGraph(svgEl, data) {
     const d3 = window.d3;
     if (!d3) return;
@@ -134,7 +164,7 @@
       sim.alpha(0.3).restart();
     });
 
-    sim.on("tick", () => {
+    const paint = () => {
       link
         .attr("x1", (d) => d.source.x)
         .attr("y1", (d) => d.source.y)
@@ -142,17 +172,20 @@
         .attr("y2", (d) => d.target.y);
       node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
       label.attr("x", (d) => d.x).attr("y", (d) => d.y);
-    });
+    };
+    sim.on("tick", paint);
 
+    // Warm up the simulation synchronously so we can fit the viewport before
+    // the user sees the graph, then optionally let it continue animating.
     const settings = readSettings();
-    if (nodes.length > settings.max_nodes) {
-      sim.stop();
-      for (let i = 0; i < 200; i++) sim.tick();
-      link
-        .attr("x1", (d) => d.source.x).attr("y1", (d) => d.source.y)
-        .attr("x2", (d) => d.target.x).attr("y2", (d) => d.target.y);
-      node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
-      label.attr("x", (d) => d.x).attr("y", (d) => d.y);
+    const isFrozen = nodes.length > settings.max_nodes;
+    sim.stop();
+    const warmupTicks = isFrozen ? 300 : 150;
+    for (let i = 0; i < warmupTicks; i++) sim.tick();
+    paint();
+    fitToView(svgEl, zoom, nodes, width, height);
+    if (!isFrozen) {
+      sim.alpha(0.1).restart();
     }
 
     return { svgRoot: root, simulation: sim };
