@@ -164,6 +164,44 @@ def test_extract_sections_empty_when_no_headings():
     assert extract_sections("just some text\n\nno headings here", [1, 2, 3]) == []
 
 
+from mkdocs_back_links.linkgraph import extract_links_in_sections
+
+
+def test_extract_links_in_sections_attributes_source():
+    md = (
+        "# Title\n\n"
+        "Top-level [a](one.md)\n\n"
+        "## Intro\n\n"
+        "Intro link [b](two.md)\n\n"
+        "## Details\n\n"
+        "Detail link [c](three.md)\n"
+    )
+    pairs = extract_links_in_sections(md, [2])
+    assert pairs == [
+        ("one.md", None),
+        ("two.md", "intro"),
+        ("three.md", "details"),
+    ]
+
+
+def test_extract_links_in_sections_respects_levels():
+    md = "# A\n[1](one.md)\n## B\n[2](two.md)\n### C\n[3](three.md)"
+    pairs = extract_links_in_sections(md, [2])
+    assert pairs == [("one.md", None), ("two.md", "b"), ("three.md", "b")]
+
+
+def test_extract_links_in_sections_skips_code_fences_consistent():
+    md = "## Real\n\n```\n[fake](nope.md)\n```\n\n[real](real.md)"
+    pairs = extract_links_in_sections(md, [2])
+    assert pairs == [("real.md", "real")]
+
+
+def test_extract_links_in_sections_no_levels_returns_none_sources():
+    md = "## Heading\n\n[link](page.md)"
+    pairs = extract_links_in_sections(md, [])
+    assert pairs == [("page.md", None)]
+
+
 from mkdocs_back_links.linkgraph import local_subgraph
 
 

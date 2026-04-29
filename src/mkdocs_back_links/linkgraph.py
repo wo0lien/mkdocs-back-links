@@ -120,6 +120,31 @@ def extract_sections(markdown: str, levels: list[int]) -> list[Section]:
     return out
 
 
+def extract_links_in_sections(
+    markdown: str, section_levels: list[int]
+) -> list[tuple[str, str | None]]:
+    """Extract each outbound link along with the slug of its containing section.
+
+    Walks the (code-stripped) markdown line-by-line, tracking the most recent
+    heading at one of `section_levels` as the active source section. Each link
+    is paired with that slug (or None if no qualifying heading has been seen yet).
+    """
+    cleaned = _strip_code(markdown)
+    current: str | None = None
+    out: list[tuple[str, str | None]] = []
+    for line in cleaned.splitlines():
+        m = _HEADING_RE.match(line)
+        if m and len(m.group(1)) in section_levels:
+            current = _md_slugify(m.group(2).strip(), "-")
+            continue
+        for lm in _LINK_RE.finditer(line):
+            href = lm.group(1)
+            if _is_external(href) or _is_anchor_only(href):
+                continue
+            out.append((href, current))
+    return out
+
+
 def local_subgraph(
     page_id: str, edges: Iterable[tuple[str, str]]
 ) -> tuple[list[str], list[tuple[str, str]]]:
