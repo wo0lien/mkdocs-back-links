@@ -59,11 +59,7 @@
     if (!isFinite(minX)) return;
     const bboxW = Math.max(maxX - minX, 1);
     const bboxH = Math.max(maxY - minY, 1);
-    // Small graphs appear over-zoomed at default padding; scale the margin up
-    // so the graph occupies a smaller share of the container.
     const padding = nodes.length < 10 ? 60 : 40;
-    // Reserve space on the right for the trailing labels and shift the center
-    // left by half that amount so labels don't get clipped.
     const labelSpace = Math.min(width * 0.15, 100);
     const scale = Math.min(
       (width - padding * 2 - labelSpace) / bboxW,
@@ -72,12 +68,22 @@
     );
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
-    const tx = (width - labelSpace) / 2 - cx * scale;
-    const ty = height / 2 - cy * scale;
-    d3.select(svgEl).call(
-      zoom.transform,
-      d3.zoomIdentity.translate(tx, ty).scale(scale)
-    );
+    const transformAt = (s) =>
+      d3.zoomIdentity
+        .translate((width - labelSpace) / 2 - cx * s, height / 2 - cy * s)
+        .scale(s);
+
+    // Intro zoom: small graphs start zoomed in (1.6x final) and ease out;
+    // global graphs (modal) start zoomed out (0.4x final) and ease in.
+    const inModal = width > 600;
+    const startScale = scale * (inModal ? 0.4 : 1.6);
+
+    const sel = d3.select(svgEl);
+    sel.call(zoom.transform, transformAt(startScale));
+    sel.transition()
+      .duration(700)
+      .ease(d3.easeCubicOut)
+      .call(zoom.transform, transformAt(scale));
   }
 
   function renderGraph(svgEl, data) {
@@ -208,7 +214,16 @@
         '<svg class="mbl-graph-svg" xmlns="http://www.w3.org/2000/svg"></svg>' +
       '</div>';
     document.body.appendChild(overlay);
-    const close = () => overlay.remove();
+
+    let closed = false;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      overlay.classList.remove("mbl-graph-modal--open");
+      overlay.classList.add("mbl-graph-modal--closing");
+      setTimeout(() => overlay.remove(), 260);
+    };
+
     overlay.addEventListener("click", (e) => {
       if (e.target === overlay) close();
     });
@@ -222,7 +237,12 @@
         }
       }
     );
-    requestAnimationFrame(() => renderGraph(overlay.querySelector(".mbl-graph-svg"), globalData));
+
+    // Trigger CSS transition on the next frame so the initial state renders first.
+    requestAnimationFrame(() => {
+      overlay.classList.add("mbl-graph-modal--open");
+      renderGraph(overlay.querySelector(".mbl-graph-svg"), globalData);
+    });
   }
 
   function init() {

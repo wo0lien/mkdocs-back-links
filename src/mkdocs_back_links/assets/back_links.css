@@ -140,6 +140,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+}
+
+.mbl-graph-modal--open {
+  opacity: 1;
+}
+
+.mbl-graph-modal--closing {
+  opacity: 0;
 }
 
 .mbl-graph-modal__inner {
@@ -148,4 +158,17 @@
   height: min(85vh, 800px);
   display: flex;
   flex-direction: column;
+  transform: scale(0.92);
+  opacity: 0;
+  transition: transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 200ms ease-out;
+}
+
+.mbl-graph-modal--open .mbl-graph-modal__inner {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.mbl-graph-modal--closing .mbl-graph-modal__inner {
+  transform: scale(0.92);
+  opacity: 0;
 }
