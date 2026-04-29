@@ -113,6 +113,57 @@ def test_inverse_index():
     }
 
 
+from markdown.extensions.toc import slugify as _md_slugify
+
+from mkdocs_back_links.linkgraph import Section, extract_sections
+
+
+def test_extract_sections_basic():
+    md = "# Title\n\n## Intro\n\nbody\n\n## Details\n\nmore"
+    sections = extract_sections(md, [1, 2])
+    assert sections == [
+        Section(level=1, title="Title", slug="title", line_offset=0),
+        Section(level=2, title="Intro", slug="intro", line_offset=2),
+        Section(level=2, title="Details", slug="details", line_offset=6),
+    ]
+
+
+def test_extract_sections_filters_levels():
+    md = "# A\n\n## B\n\n### C\n\n## D"
+    sections = extract_sections(md, [2])
+    assert [s.title for s in sections] == ["B", "D"]
+
+
+def test_extract_sections_ignores_fenced_code():
+    md = "## Real\n\n```\n## Fake heading inside fence\n```\n\n## Also real"
+    sections = extract_sections(md, [2])
+    assert [s.title for s in sections] == ["Real", "Also real"]
+
+
+def test_extract_sections_strips_trailing_hash_chars():
+    md = "## Heading ##"
+    sections = extract_sections(md, [2])
+    assert sections == [Section(level=2, title="Heading", slug="heading", line_offset=0)]
+
+
+def test_extract_sections_slug_parity_with_mkdocs():
+    titles = [
+        "Hello World",
+        "Edge: Cases & More",
+        "  Spaces  Around  ",
+        "UPPERCASE / Mixed-Case",
+        "non-ascii — em dash",
+    ]
+    md = "\n\n".join(f"## {t}" for t in titles)
+    sections = extract_sections(md, [2])
+    expected_slugs = [_md_slugify(t, "-") for t in titles]
+    assert [s.slug for s in sections] == expected_slugs
+
+
+def test_extract_sections_empty_when_no_headings():
+    assert extract_sections("just some text\n\nno headings here", [1, 2, 3]) == []
+
+
 from mkdocs_back_links.linkgraph import local_subgraph
 
 

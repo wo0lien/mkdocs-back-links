@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import re
+from typing import NamedTuple
+from markdown.extensions.toc import slugify as _md_slugify
 
 _FENCE_RE = re.compile(r"^([`~]{3,})[^\n]*\n.*?\n\1[ \t]*$", re.DOTALL | re.MULTILINE)
 _INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
@@ -86,6 +88,36 @@ def inverse_index(edges: Iterable[tuple[str, str]]) -> dict[str, list[str]]:
     for source, target in edges:
         inv[target].add(source)
     return {k: sorted(v) for k, v in inv.items()}
+
+
+_HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(.+?)[ \t]*#*[ \t]*$")
+
+
+class Section(NamedTuple):
+    level: int
+    title: str
+    slug: str
+    line_offset: int
+
+
+def extract_sections(markdown: str, levels: list[int]) -> list[Section]:
+    """Return headings at the configured levels with MkDocs-compatible slugs.
+
+    Skips headings inside fenced code blocks. `line_offset` is the 0-indexed
+    line number of the heading in the original markdown.
+    """
+    cleaned = _strip_code(markdown)
+    out: list[Section] = []
+    for i, line in enumerate(cleaned.splitlines()):
+        m = _HEADING_RE.match(line)
+        if not m:
+            continue
+        level = len(m.group(1))
+        if level not in levels:
+            continue
+        title = m.group(2).strip()
+        out.append(Section(level=level, title=title, slug=_md_slugify(title, "-"), line_offset=i))
+    return out
 
 
 def local_subgraph(
