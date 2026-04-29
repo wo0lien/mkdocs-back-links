@@ -11,7 +11,7 @@ from mkdocs.structure.files import File, Files
 from mkdocs.structure.pages import Page
 
 from .config import BackLinksConfig
-from .linkgraph import build_edges, inverse_index, local_subgraph
+from .linkgraph import build_edges, inverse_page_index, local_subgraph
 from .render import render_backlinks_section, render_local_graph_data, render_settings_data
 
 
@@ -49,8 +49,8 @@ class BackLinksPlugin(BasePlugin[BackLinksConfig]):
         return markdown
 
     def on_env(self, env, config, files):
-        self._edges = build_edges(self._markdown)
-        self._inverse = inverse_index(self._edges)
+        self._edges = build_edges(self._markdown, section_levels=self.config.graph.section_levels)
+        self._inverse = inverse_page_index(self._edges)
         return env
 
     def on_page_context(self, context, *, page: Page, config, nav):
@@ -74,7 +74,8 @@ class BackLinksPlugin(BasePlugin[BackLinksConfig]):
                 heading=self.config.backlinks.heading, entries=entries
             )
         if graph_enabled:
-            nodes_ids, sub_edges = local_subgraph(page_id, self._edges)
+            page_edges = [(s, t) for s, _ss, t, _ts in self._edges if s != t]
+            nodes_ids, sub_edges = local_subgraph(page_id, page_edges)
             graph = {
                 "current": page_id,
                 "nodes": [
@@ -119,8 +120,8 @@ class BackLinksPlugin(BasePlugin[BackLinksConfig]):
         ]
         edges = [
             {"source": s, "target": t}
-            for s, t in self._edges
-            if s not in excluded and t not in excluded
+            for s, _ss, t, _ts in self._edges
+            if s not in excluded and t not in excluded and s != t
         ]
         (out_dir / "graph.json").write_text(json.dumps({"nodes": nodes, "edges": edges}))
 

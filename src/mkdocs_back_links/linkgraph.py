@@ -73,28 +73,53 @@ from collections import defaultdict
 from typing import Iterable, Mapping
 
 
-def build_edges(pages: Mapping[str, str]) -> list[tuple[str, str]]:
-    """Return a sorted, deduped, self-link-free list of (source, target) edges
-    where both source and target are keys in `pages`."""
-    seen: set[tuple[str, str]] = set()
+def build_edges(
+    pages: Mapping[str, str], *, section_levels: list[int]
+) -> list[tuple[str, str | None, str, str | None]]:
+    """Return sorted, deduped 4-tuples (source_page, source_section, target_page, target_section).
+
+    Drops external links, anchor-only links, links to non-markdown targets,
+    links to pages outside `pages`, and self-loops where source and target
+    page+section are identical.
+    """
+    seen: set[tuple[str, str | None, str, str | None]] = set()
     for source_id, markdown in pages.items():
-        for href in extract_links(markdown):
+        for href, source_section in extract_links_in_sections(markdown, section_levels):
             resolved = resolve_link(source_id, href)
             if resolved is None:
                 continue
-            target, _frag = resolved
-            if target == source_id or target not in pages:
+            target_page, target_section = resolved
+            if target_page == source_id and source_section == target_section:
                 continue
-            seen.add((source_id, target))
-    return sorted(seen)
+            if target_page not in pages:
+                continue
+            seen.add((source_id, source_section, target_page, target_section))
+    return sorted(seen, key=lambda e: (e[0], e[1] or "", e[2], e[3] or ""))
 
 
-def inverse_index(edges: Iterable[tuple[str, str]]) -> dict[str, list[str]]:
-    """Return a map of target_id -> sorted list of source ids that link to it."""
+def inverse_page_index(
+    edges: Iterable[tuple[str, str | None, str, str | None]],
+) -> dict[str, list[str]]:
+    """Map target_page -> sorted, deduped list of source pages (ignores sections)."""
     inv: dict[str, set[str]] = defaultdict(set)
-    for source, target in edges:
-        inv[target].add(source)
+    for src, _src_sec, tgt, _tgt_sec in edges:
+        inv[tgt].add(src)
     return {k: sorted(v) for k, v in inv.items()}
+
+
+def inverse_section_index(
+    edges: Iterable[tuple[str, str | None, str, str | None]],
+) -> dict[tuple[str, str], list[tuple[str, str | None]]]:
+    """Map (target_page, target_section) -> sorted list of (source_page, source_section).
+
+    Only edges with a non-None target_section are included.
+    """
+    inv: dict[tuple[str, str], set[tuple[str, str | None]]] = defaultdict(set)
+    for src, src_sec, tgt, tgt_sec in edges:
+        if tgt_sec is None:
+            continue
+        inv[(tgt, tgt_sec)].add((src, src_sec))
+    return {k: sorted(v, key=lambda e: (e[0], e[1] or "")) for k, v in inv.items()}
 
 
 _HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(.+?)[ \t]*#*[ \t]*$")
