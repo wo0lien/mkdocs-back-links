@@ -113,7 +113,7 @@
       .selectAll("line")
       .data(edges)
       .join("line")
-      .attr("class", "mbl-graph-link")
+      .attr("class", (d) => "mbl-graph-link" + (d.kind === "contains" ? " mbl-graph-link--contains" : ""))
       .attr("stroke-width", 1);
 
     const edgeId = (e) => {
@@ -159,8 +159,17 @@
       .selectAll("circle")
       .data(nodes)
       .join("circle")
-      .attr("class", (d) => "mbl-graph-node" + (d.id === currentId ? " mbl-graph-node--current" : ""))
-      .attr("r", (d) => (d.id === currentId ? 10 : 7))
+      .attr("class", (d) => {
+        const cls = ["mbl-graph-node"];
+        if (d.type === "section") cls.push("mbl-graph-node--section");
+        if (d.id === currentId) cls.push("mbl-graph-node--current");
+        return cls.join(" ");
+      })
+      .attr("r", (d) => {
+        if (d.type === "section") return 5;
+        return d.id === currentId ? 10 : 7;
+      })
+      .attr("data-graph-id", (d) => d.id)
       .on("click", (_event, d) => {
         if (d.url) window.location.href = d.url;
       })
@@ -178,6 +187,7 @@
       .attr("class", (d) => "mbl-graph-label" + (d.id === currentId ? " mbl-graph-label--current" : ""))
       .attr("dx", (d) => (d.id === currentId ? 14 : 11))
       .attr("dy", "0.35em")
+      .attr("data-graph-id", (d) => d.id)
       .text((d) => d.title);
 
     // Scale forces with container size — the modal is much larger than the
