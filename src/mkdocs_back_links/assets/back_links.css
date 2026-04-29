@@ -92,6 +92,11 @@
   flex: 1;
   width: 100%;
   cursor: grab;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.4rem;
+  margin: 0.4rem;
+  background: var(--md-default-bg-color);
+  box-sizing: border-box;
 }
 
 .mbl-graph-svg:active { cursor: grabbing; }
