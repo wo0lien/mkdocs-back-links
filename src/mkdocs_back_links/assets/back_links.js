@@ -116,6 +116,44 @@
       .attr("class", "mbl-graph-link")
       .attr("stroke-width", 1);
 
+    const edgeId = (e) => {
+      const s = typeof e.source === "object" ? e.source.id : e.source;
+      const t = typeof e.target === "object" ? e.target.id : e.target;
+      return [s, t];
+    };
+
+    const focusNode = (focusId) => {
+      const connected = new Set([focusId]);
+      for (const e of edges) {
+        const [s, t] = edgeId(e);
+        if (s === focusId) connected.add(t);
+        if (t === focusId) connected.add(s);
+      }
+      node.classed("mbl-graph-node--faded", (n) => !connected.has(n.id));
+      label
+        .classed("mbl-graph-label--faded", (n) => !connected.has(n.id))
+        .classed("mbl-graph-label--hover", (n) => n.id === focusId);
+      link
+        .classed("mbl-graph-link--faded", (e) => {
+          const [s, t] = edgeId(e);
+          return s !== focusId && t !== focusId;
+        })
+        .classed("mbl-graph-link--active", (e) => {
+          const [s, t] = edgeId(e);
+          return s === focusId || t === focusId;
+        });
+    };
+
+    const clearFocus = () => {
+      node.classed("mbl-graph-node--faded", false);
+      label
+        .classed("mbl-graph-label--faded", false)
+        .classed("mbl-graph-label--hover", false);
+      link
+        .classed("mbl-graph-link--faded", false)
+        .classed("mbl-graph-link--active", false);
+    };
+
     const node = root
       .append("g")
       .selectAll("circle")
@@ -125,7 +163,9 @@
       .attr("r", (d) => (d.id === currentId ? 10 : 7))
       .on("click", (_event, d) => {
         if (d.url) window.location.href = d.url;
-      });
+      })
+      .on("mouseover", (_event, d) => focusNode(d.id))
+      .on("mouseout", clearFocus);
 
     node.append("title").text((d) => d.title);
 

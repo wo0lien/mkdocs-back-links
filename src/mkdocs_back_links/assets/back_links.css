@@ -108,7 +108,7 @@
 .mbl-graph-node {
   fill: var(--md-default-fg-color);
   cursor: pointer;
-  transition: fill 120ms ease-out;
+  transition: fill 120ms ease-out, opacity 150ms ease-out;
 }
 
 .mbl-graph-node:hover {
@@ -117,7 +117,23 @@
 
 .mbl-graph-node--current { fill: var(--md-primary-fg-color); }
 
-.mbl-graph-link { stroke: var(--md-default-fg-color--lightest); stroke-opacity: 0.8; }
+.mbl-graph-node--faded { opacity: 0.18; }
+
+.mbl-graph-link {
+  stroke: var(--md-default-fg-color--lightest);
+  stroke-opacity: 0.8;
+  transition: stroke 150ms ease-out, stroke-opacity 150ms ease-out, stroke-width 150ms ease-out;
+}
+
+.mbl-graph-link--active {
+  stroke: var(--md-accent-fg-color);
+  stroke-opacity: 1;
+  stroke-width: 2;
+}
+
+.mbl-graph-link--faded {
+  stroke-opacity: 0.12;
+}
 
 .mbl-graph-label {
   font-size: 0.7rem;
@@ -125,11 +141,22 @@
   fill: var(--md-default-fg-color--light);
   pointer-events: none;
   user-select: none;
+  transition: opacity 150ms ease-out, font-size 150ms ease-out, fill 150ms ease-out;
+  transform-box: fill-box;
+  transform-origin: left center;
 }
 
 .mbl-graph-label--current {
   fill: var(--md-primary-fg-color);
   font-weight: 600;
+}
+
+.mbl-graph-label--faded { opacity: 0.25; }
+
+.mbl-graph-label--hover {
+  fill: var(--md-accent-fg-color);
+  font-weight: 600;
+  font-size: 1.05rem;
 }
 
 /* Modal overlay for expanded view */
