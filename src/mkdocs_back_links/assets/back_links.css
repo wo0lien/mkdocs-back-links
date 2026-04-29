@@ -210,3 +210,70 @@
   transform: scale(0.92);
   opacity: 0;
 }
+
+/* --- Section nodes & contains edges --- */
+.mbl-graph-node--section {
+  fill: var(--md-default-fg-color--light);
+  r: 5;
+}
+
+.mbl-graph-link--contains {
+  stroke-dasharray: 3 3;
+  stroke-opacity: 0.45;
+}
+
+/* --- Scrolled-into-view indicator (distinct from hover) --- */
+.mbl-graph-node--scrolled {
+  stroke: var(--md-primary-fg-color);
+  stroke-width: 2;
+  stroke-opacity: 0.9;
+}
+
+.mbl-graph-label--scrolled {
+  font-weight: 600;
+}
+
+/* --- Per-section backlinks aside --- */
+.md-typeset .mbl-section-backlinks {
+  margin: 1.5em 0;
+  padding: 0.6em 0.8em;
+  border-left: 3px solid var(--md-default-fg-color--lightest);
+  background: var(--md-code-bg-color, var(--md-default-bg-color));
+  font-size: 0.8em;
+  line-height: 1.5;
+}
+
+.md-typeset .mbl-section-backlinks h3 {
+  font-size: inherit;
+  font-weight: 600;
+  margin: 0 0 0.3em;
+  padding: 0;
+  border: 0;
+  color: var(--md-default-fg-color--light);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.md-typeset .mbl-section-backlinks ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.md-typeset .mbl-section-backlinks li {
+  margin: 0.15em 0;
+}
+
+.md-typeset .mbl-section-backlinks a {
+  color: var(--md-typeset-a-color);
+  text-decoration: none;
+}
+
+.md-typeset .mbl-section-backlinks a:hover {
+  text-decoration: underline;
+}
+
+.md-typeset .mbl-section-backlinks summary {
+  cursor: pointer;
+  color: var(--md-default-fg-color--light);
+}
