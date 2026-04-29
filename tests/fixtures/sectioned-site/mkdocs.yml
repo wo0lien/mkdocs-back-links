@@ -1,0 +1,8 @@
+site_name: SectionedSite
+theme:
+  name: material
+nav:
+  - A: a.md
+  - B: b.md
+plugins:
+  - back-links
