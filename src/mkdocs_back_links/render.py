@@ -28,3 +28,8 @@ def render_local_graph_data(graph: Mapping[str, object]) -> str:
     # Defuse any literal </script> appearing inside string fields
     safe = payload.replace("</", "<\\/")
     return f'<script id="mbl-local-graph" type="application/json">{safe}</script>\n'
+
+
+def render_settings_data(settings: Mapping[str, object]) -> str:
+    payload = json.dumps(settings, separators=(",", ":")).replace("</", "<\\/")
+    return f'<script id="mbl-settings" type="application/json">{payload}</script>\n'

@@ -12,6 +12,13 @@
     }
   }
 
+  function readSettings() {
+    const tag = document.getElementById("mbl-settings");
+    if (!tag) return { max_nodes: 500, default_view: "local" };
+    try { return JSON.parse(tag.textContent); }
+    catch (_e) { return { max_nodes: 500, default_view: "local" }; }
+  }
+
   function buildPaneElement() {
     const pane = document.createElement("aside");
     pane.className = "mbl-graph-pane";
@@ -124,6 +131,19 @@
       node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
     });
 
+    // 8. Freeze check: if node count exceeds max_nodes, run fixed ticks and stop
+    const settings = readSettings();
+    if (nodes.length > settings.max_nodes) {
+      // run a fixed number of ticks then stop
+      sim.stop();
+      for (let i = 0; i < 200; i++) sim.tick();
+      // manually paint final positions
+      link
+        .attr("x1", (d) => d.source.x).attr("y1", (d) => d.source.y)
+        .attr("x2", (d) => d.target.x).attr("y2", (d) => d.target.y);
+      node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
+    }
+
     return { svgRoot: root, simulation: sim };
   }
 
@@ -142,9 +162,16 @@
     let globalCache = null;
     let currentRender = null;
 
-    requestAnimationFrame(() => {
-      currentRender = renderGraph(svg, data);
-    });
+    const settings = readSettings();
+    if (settings.default_view === "global") {
+      // simulate clicking the Global pill once the pane is ready
+      requestAnimationFrame(() => {
+        const globalBtn = pane.querySelector('.mbl-graph-toggle button[data-view="global"]');
+        if (globalBtn) globalBtn.click();
+      });
+    } else {
+      requestAnimationFrame(() => { currentRender = renderGraph(svg, data); });
+    }
 
     pane.querySelectorAll(".mbl-graph-toggle button").forEach((btn) => {
       btn.addEventListener("click", async () => {

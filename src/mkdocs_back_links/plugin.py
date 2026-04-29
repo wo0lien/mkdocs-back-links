@@ -12,7 +12,7 @@ from mkdocs.structure.pages import Page
 
 from .config import BackLinksConfig
 from .linkgraph import build_edges, inverse_index, local_subgraph
-from .render import render_backlinks_section, render_local_graph_data
+from .render import render_backlinks_section, render_local_graph_data, render_settings_data
 
 
 _ASSETS_DIR = Path(__file__).parent / "assets"
@@ -84,6 +84,11 @@ class BackLinksPlugin(BasePlugin[BackLinksConfig]):
                 "edges": [{"source": s, "target": t} for s, t in sub_edges],
             }
             extra += render_local_graph_data(graph)
+            settings = {
+                "max_nodes": self.config.graph.max_nodes,
+                "default_view": self.config.graph.default_view,
+            }
+            extra += render_settings_data(settings)
 
         if extra:
             page.content = (page.content or "") + extra

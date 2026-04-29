@@ -51,3 +51,16 @@ def test_local_graph_data_escapes_closing_script():
         {"nodes": [{"id": "a", "title": "evil </script><b>", "url": "/a/"}], "edges": []}
     )
     assert "</script><b>" not in html.split('<script', 1)[1].split("</script>", 1)[0]
+
+
+from mkdocs_back_links.render import render_settings_data
+
+
+def test_settings_data_emits_json():
+    html = render_settings_data({"max_nodes": 500, "default_view": "local"})
+    assert 'id="mbl-settings"' in html
+    import json, re
+    m = re.search(r'>(.*)</script>', html, re.DOTALL)
+    parsed = json.loads(m.group(1))
+    assert parsed["max_nodes"] == 500
+    assert parsed["default_view"] == "local"
