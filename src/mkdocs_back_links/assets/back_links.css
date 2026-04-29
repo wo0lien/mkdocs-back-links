@@ -104,8 +104,18 @@
 
 .mbl-graph-svg:active { cursor: grabbing; }
 
-.mbl-graph-node { fill: var(--md-default-fg-color); cursor: pointer; }
+.mbl-graph-node {
+  fill: var(--md-default-fg-color);
+  cursor: pointer;
+  transition: fill 120ms ease-out;
+}
+
+.mbl-graph-node:hover {
+  fill: var(--md-accent-fg-color);
+}
+
 .mbl-graph-node--current { fill: var(--md-primary-fg-color); }
+
 .mbl-graph-link { stroke: var(--md-default-fg-color--lightest); stroke-opacity: 0.8; }
 
 .mbl-graph-label {
