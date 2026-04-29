@@ -86,3 +86,18 @@ def inverse_index(edges: Iterable[tuple[str, str]]) -> dict[str, list[str]]:
     for source, target in edges:
         inv[target].add(source)
     return {k: sorted(v) for k, v in inv.items()}
+
+
+def local_subgraph(
+    page_id: str, edges: Iterable[tuple[str, str]]
+) -> tuple[list[str], list[tuple[str, str]]]:
+    """Return (nodes, edges) of the 1-hop neighborhood around `page_id`."""
+    edges = list(edges)
+    neighbors: set[str] = {page_id}
+    sub_edges: list[tuple[str, str]] = []
+    for src, tgt in edges:
+        if src == page_id or tgt == page_id:
+            sub_edges.append((src, tgt))
+            neighbors.add(src)
+            neighbors.add(tgt)
+    return sorted(neighbors), sub_edges

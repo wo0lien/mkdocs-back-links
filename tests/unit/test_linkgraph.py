@@ -111,3 +111,29 @@ def test_inverse_index():
         "b.md": ["a.md", "c.md"],
         "c.md": ["a.md"],
     }
+
+
+from mkdocs_back_links.linkgraph import local_subgraph
+
+
+def test_local_subgraph_includes_self_and_neighbors():
+    edges = [
+        ("a.md", "b.md"),
+        ("b.md", "c.md"),
+        ("d.md", "b.md"),
+        ("e.md", "f.md"),
+    ]
+    nodes, sub_edges = local_subgraph("b.md", edges)
+    assert sorted(nodes) == ["a.md", "b.md", "c.md", "d.md"]
+    assert sorted(sub_edges) == [
+        ("a.md", "b.md"),
+        ("b.md", "c.md"),
+        ("d.md", "b.md"),
+    ]
+
+
+def test_local_subgraph_isolated_page():
+    edges = [("a.md", "b.md")]
+    nodes, sub_edges = local_subgraph("z.md", edges)
+    assert nodes == ["z.md"]
+    assert sub_edges == []
