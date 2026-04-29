@@ -62,14 +62,17 @@
     // Small graphs appear over-zoomed at default padding; scale the margin up
     // so the graph occupies a smaller share of the container.
     const padding = nodes.length < 10 ? 60 : 40;
+    // Reserve space on the right for the trailing labels and shift the center
+    // left by half that amount so labels don't get clipped.
+    const labelSpace = Math.min(width * 0.15, 100);
     const scale = Math.min(
-      (width - padding * 2) / bboxW,
+      (width - padding * 2 - labelSpace) / bboxW,
       (height - padding * 2) / bboxH,
       2
     );
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
-    const tx = width / 2 - cx * scale;
+    const tx = (width - labelSpace) / 2 - cx * scale;
     const ty = height / 2 - cy * scale;
     d3.select(svgEl).call(
       zoom.transform,
