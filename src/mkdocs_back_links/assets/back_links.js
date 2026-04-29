@@ -42,10 +42,21 @@
     const width = svgEl.clientWidth || 200;
     const height = svgEl.clientHeight || 200;
 
+    // 1. Set up svg and root
     const svg = d3.select(svgEl);
     svg.selectAll("*").remove();
     const root = svg.append("g").attr("class", "mbl-graph-root");
 
+    // 2. Set up zoom on svg
+    const zoom = d3
+      .zoom()
+      .scaleExtent([0.25, 4])
+      .on("zoom", (event) => {
+        root.attr("transform", event.transform);
+      });
+    svg.call(zoom).on("dblclick.zoom", null);
+
+    // 3. Create nodes/edges data, link selection, node selection
     const nodes = data.nodes.map((n) => Object.assign({}, n));
     const edges = data.edges.map((e) => Object.assign({}, e));
     const currentId = data.current;
@@ -71,6 +82,7 @@
 
     node.append("title").text((d) => d.title);
 
+    // 4. Create simulation
     const sim = d3
       .forceSimulation(nodes)
       .force("link", d3.forceLink(edges).id((d) => d.id).distance(40).strength(0.6))
@@ -78,6 +90,31 @@
       .force("center", d3.forceCenter(width / 2, height / 2))
       .force("collide", d3.forceCollide(8));
 
+    // 5. Set up drag (references sim)
+    const drag = d3
+      .drag()
+      .on("start", (event, d) => {
+        if (!event.active) sim.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      })
+      .on("drag", (event, d) => {
+        d.fx = event.x;
+        d.fy = event.y;
+      })
+      .on("end", (event, d) => {
+        if (!event.active) sim.alphaTarget(0);
+        // pinned: leave fx/fy set so it stays put
+      });
+
+    // 6. Attach drag and dblclick to node
+    node.call(drag).on("dblclick", (_event, d) => {
+      d.fx = null;
+      d.fy = null;
+      sim.alpha(0.3).restart();
+    });
+
+    // 7. Set sim tick handler
     sim.on("tick", () => {
       link
         .attr("x1", (d) => d.source.x)
