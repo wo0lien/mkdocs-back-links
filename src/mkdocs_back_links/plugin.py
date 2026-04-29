@@ -126,6 +126,35 @@ class BackLinksPlugin(BasePlugin[BackLinksConfig]):
             html = html[:offset] + block + html[offset:]
         return html
 
+    def _section_is_graph_eligible(self, page_id: str, section) -> bool:
+        """A section appears as a graph node if its level is in section_levels
+        AND (cross-page link targets it, OR same-page allowed and any link)."""
+        if section.level not in self.config.graph.section_levels:
+            return False
+        if page_id in self.config.graph.exclude:
+            return False
+        sources = self._inverse_section.get((page_id, section.slug), [])
+        if not sources:
+            return False
+        if self.config.graph.section_nodes_same_page:
+            return True
+        return any(src_page != page_id for src_page, _src_section in sources)
+
+    def _section_nodes_for_page(self, page_id: str) -> list[dict]:
+        nodes = []
+        for section in self._sections.get(page_id, []):
+            if not self._section_is_graph_eligible(page_id, section):
+                continue
+            sid = f"{page_id}#{section.slug}"
+            nodes.append({
+                "id": sid,
+                "type": "section",
+                "title": section.title,
+                "page": page_id,
+                "url": self._urls.get(page_id, "/" + page_id) + "#" + section.slug,
+            })
+        return nodes
+
     def on_page_context(self, context, *, page: Page, config, nav):
         page_id = page.file.src_uri
         overrides = self._page_overrides.get(page_id, {})
@@ -152,14 +181,47 @@ class BackLinksPlugin(BasePlugin[BackLinksConfig]):
             )
         if graph_enabled:
             page_edges = [(s, t) for s, _ss, t, _ts in self._edges if s != t]
-            nodes_ids, sub_edges = local_subgraph(page_id, page_edges)
+            page_nodes_ids, _page_sub_edges = local_subgraph(page_id, page_edges)
+
+            nodes_by_id: dict[str, dict] = {
+                n: {
+                    "id": n,
+                    "type": "page",
+                    "title": self._titles.get(n, n),
+                    "url": self._urls.get(n, "/" + n),
+                }
+                for n in page_nodes_ids
+            }
+            for pid in page_nodes_ids:
+                for sn in self._section_nodes_for_page(pid):
+                    nodes_by_id[sn["id"]] = sn
+
+            edges_by_key: dict[tuple[str, str, str], dict] = {}
+
+            def add_edge(src: str, tgt: str, kind: str) -> None:
+                if src == tgt:
+                    return
+                edges_by_key[(src, tgt, kind)] = {"source": src, "target": tgt, "kind": kind}
+
+            for s, _ss, t, ts in self._edges:
+                if s not in page_nodes_ids and t not in page_nodes_ids:
+                    continue
+                tgt_id = f"{t}#{ts}" if ts and f"{t}#{ts}" in nodes_by_id else t
+                if tgt_id not in nodes_by_id:
+                    continue
+                if s not in nodes_by_id:
+                    continue
+                add_edge(s, tgt_id, "cross")
+
+            for n in nodes_by_id.values():
+                if n["type"] == "section":
+                    add_edge(n["page"], n["id"], "contains")
+
             graph = {
                 "current": page_id,
-                "nodes": [
-                    {"id": n, "title": self._titles.get(n, n), "url": self._urls.get(n, "/" + n)}
-                    for n in nodes_ids
-                ],
-                "edges": [{"source": s, "target": t} for s, t in sub_edges],
+                "current_url": self._urls.get(page_id, "/" + page_id),
+                "nodes": sorted(nodes_by_id.values(), key=lambda n: (n["type"] != "page", n["id"])),
+                "edges": sorted(edges_by_key.values(), key=lambda e: (e["source"], e["target"], e["kind"])),
             }
             extra += render_local_graph_data(graph)
             settings = {"max_nodes": self.config.graph.max_nodes}
@@ -190,17 +252,52 @@ class BackLinksPlugin(BasePlugin[BackLinksConfig]):
         out_dir.mkdir(parents=True, exist_ok=True)
 
         excluded = set(self.config.graph.exclude)
-        nodes = [
-            {"id": pid, "title": self._titles.get(pid, pid), "url": self._urls.get(pid, "/" + pid)}
+
+        page_nodes = [
+            {
+                "id": pid,
+                "type": "page",
+                "title": self._titles.get(pid, pid),
+                "url": self._urls.get(pid, "/" + pid),
+            }
             for pid in sorted(self._markdown)
             if pid not in excluded
         ]
-        edges = [
-            {"source": s, "target": t}
-            for s, _ss, t, _ts in self._edges
-            if s not in excluded and t not in excluded and s != t
-        ]
-        (out_dir / "graph.json").write_text(json.dumps({"nodes": nodes, "edges": edges}))
+        page_node_ids = {n["id"] for n in page_nodes}
+
+        section_nodes: list[dict] = []
+        for pid in sorted(self._markdown):
+            if pid in excluded:
+                continue
+            section_nodes.extend(self._section_nodes_for_page(pid))
+        section_node_ids = {n["id"] for n in section_nodes}
+
+        edges: list[dict] = []
+        for s, _ss, t, ts in self._edges:
+            if s in excluded or t in excluded:
+                continue
+            tgt_id = f"{t}#{ts}" if ts and f"{t}#{ts}" in section_node_ids else t
+            if tgt_id not in page_node_ids and tgt_id not in section_node_ids:
+                continue
+            edges.append({"source": s, "target": tgt_id, "kind": "cross"})
+        for n in section_nodes:
+            edges.append({"source": n["page"], "target": n["id"], "kind": "contains"})
+
+        seen: set[tuple[str, str, str]] = set()
+        unique_edges = []
+        for e in edges:
+            k = (e["source"], e["target"], e["kind"])
+            if k in seen:
+                continue
+            seen.add(k)
+            unique_edges.append(e)
+        unique_edges.sort(key=lambda e: (e["source"], e["target"], e["kind"]))
+
+        graph = {
+            "nodes": page_nodes + section_nodes,
+            "edges": unique_edges,
+        }
+        (out_dir / "graph.json").write_text(json.dumps(graph))
 
         for asset in ("back_links.css", "back_links.js"):
             src = _ASSETS_DIR / asset
