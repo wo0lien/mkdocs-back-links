@@ -72,3 +72,42 @@ def test_resolve_returns_none_for_non_md():
 
 def test_resolve_returns_none_for_escape_above_root():
     assert resolve_link("page.md", "../../../etc/passwd.md") is None
+
+
+from mkdocs_back_links.linkgraph import build_edges, inverse_index
+
+
+def test_build_edges_simple():
+    pages = {
+        "a.md": "[to b](b.md)",
+        "b.md": "[to c](c.md) and back to [a](a.md)",
+        "c.md": "no links",
+    }
+    edges = build_edges(pages)
+    assert sorted(edges) == [("a.md", "b.md"), ("b.md", "a.md"), ("b.md", "c.md")]
+
+
+def test_build_edges_drops_unknown_targets():
+    pages = {
+        "a.md": "[ghost](does-not-exist.md)",
+        "b.md": "",
+    }
+    assert build_edges(pages) == []
+
+
+def test_build_edges_dedupes():
+    pages = {"a.md": "[1](b.md) and [2](b.md)", "b.md": ""}
+    assert build_edges(pages) == [("a.md", "b.md")]
+
+
+def test_build_edges_skips_self_links():
+    pages = {"a.md": "[self](a.md)", "b.md": ""}
+    assert build_edges(pages) == []
+
+
+def test_inverse_index():
+    edges = [("a.md", "b.md"), ("c.md", "b.md"), ("a.md", "c.md")]
+    assert inverse_index(edges) == {
+        "b.md": ["a.md", "c.md"],
+        "c.md": ["a.md"],
+    }

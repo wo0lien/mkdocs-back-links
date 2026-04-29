@@ -61,3 +61,28 @@ def resolve_link(source_id: str, href: str) -> str | None:
     if candidate.startswith("..") or candidate.startswith("/"):
         return None
     return candidate
+
+
+from collections import defaultdict
+from typing import Iterable, Mapping
+
+
+def build_edges(pages: Mapping[str, str]) -> list[tuple[str, str]]:
+    """Return a sorted, deduped, self-link-free list of (source, target) edges
+    where both source and target are keys in `pages`."""
+    seen: set[tuple[str, str]] = set()
+    for source_id, markdown in pages.items():
+        for href in extract_links(markdown):
+            target = resolve_link(source_id, href)
+            if target is None or target == source_id or target not in pages:
+                continue
+            seen.add((source_id, target))
+    return sorted(seen)
+
+
+def inverse_index(edges: Iterable[tuple[str, str]]) -> dict[str, list[str]]:
+    """Return a map of target_id -> sorted list of source ids that link to it."""
+    inv: dict[str, set[str]] = defaultdict(set)
+    for source, target in edges:
+        inv[target].add(source)
+    return {k: sorted(v) for k, v in inv.items()}
