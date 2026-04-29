@@ -89,8 +89,11 @@
 }
 
 .mbl-graph-svg {
-  flex: 1;
+  flex: 0 1 auto;
+  align-self: center;
   width: calc(100% - 0.8rem);
+  aspect-ratio: 1 / 1;
+  max-height: calc(100% - 0.8rem);
   cursor: grab;
   border: 1px solid var(--md-default-fg-color--lightest);
   border-radius: 0.4rem;
