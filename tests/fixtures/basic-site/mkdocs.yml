@@ -1,0 +1,11 @@
+site_name: BasicSite
+theme:
+  name: material
+plugins:
+  - back-links
+nav:
+  - Home: index.md
+  - Source: source.md
+  - Target: target.md
+  - Orphan: orphan.md
+  - No Backlinks: no-backlinks.md
