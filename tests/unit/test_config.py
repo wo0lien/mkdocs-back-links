@@ -44,3 +44,34 @@ def test_overrides():
 def test_bad_max_nodes_type_rejected():
     errors, _, _ = _validate({"graph": {"max_nodes": "lots"}})
     assert errors
+
+
+def test_section_defaults():
+    errors, _, cfg = _validate({})
+    assert errors == []
+    assert cfg.backlinks.section_collapse_threshold == 3
+    assert cfg.graph.section_levels == [2, 3]
+    assert cfg.graph.section_nodes_same_page is False
+
+
+def test_section_overrides():
+    errors, _, cfg = _validate(
+        {
+            "backlinks": {"section_collapse_threshold": 0},
+            "graph": {"section_levels": [2], "section_nodes_same_page": True},
+        }
+    )
+    assert errors == []
+    assert cfg.backlinks.section_collapse_threshold == 0
+    assert cfg.graph.section_levels == [2]
+    assert cfg.graph.section_nodes_same_page is True
+
+
+def test_bad_section_levels_rejected():
+    errors, _, _ = _validate({"graph": {"section_levels": ["two"]}})
+    assert errors
+
+
+def test_bad_section_collapse_threshold_rejected():
+    errors, _, _ = _validate({"backlinks": {"section_collapse_threshold": "many"}})
+    assert errors
