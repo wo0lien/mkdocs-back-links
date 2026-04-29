@@ -1,37 +1,45 @@
 /* mkdocs-back-links — backlinks section + graph pane */
 
-.mbl-backlinks {
+/* All selectors are scoped under .md-typeset to override Material's
+   default typography (which would otherwise render the section as a
+   full-size body heading + large list). */
+
+.md-typeset .mbl-backlinks {
   margin-top: 3rem;
-  padding-top: 1rem;
+  padding-top: 0.8rem;
   border-top: 1px solid var(--md-default-fg-color--lightest);
-  font-size: 0.85rem;
+  font-size: 0.8em;
+  line-height: 1.5;
 }
 
-.mbl-backlinks h2 {
-  font-size: 0.9rem;
+.md-typeset .mbl-backlinks h2 {
+  font-size: inherit;
   font-weight: 600;
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.4em;
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--md-default-fg-color--light);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.mbl-backlinks ul {
+.md-typeset .mbl-backlinks ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-.mbl-backlinks li {
-  margin: 0.2rem 0;
+.md-typeset .mbl-backlinks li {
+  margin: 0.15em 0;
 }
 
-.mbl-backlinks a {
+.md-typeset .mbl-backlinks a {
   color: var(--md-typeset-a-color);
   text-decoration: none;
 }
 
-.mbl-backlinks a:hover {
+.md-typeset .mbl-backlinks a:hover {
   text-decoration: underline;
 }
 
