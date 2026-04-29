@@ -154,7 +154,6 @@
 .mbl-graph-label--faded { opacity: 0.25; }
 
 .mbl-graph-label--hover {
-  fill: var(--md-accent-fg-color);
   font-weight: 600;
   font-size: 1.05rem;
 }
