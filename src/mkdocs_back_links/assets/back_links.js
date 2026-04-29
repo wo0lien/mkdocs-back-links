@@ -99,12 +99,19 @@
       .attr("dy", "0.35em")
       .text((d) => d.title);
 
+    // Scale forces with container size — the modal is much larger than the
+    // sidebar pane and benefits from longer links and stronger repulsion.
+    const inModal = width > 600;
+    const linkDistance = inModal ? 140 : 60;
+    const chargeStrength = inModal ? -500 : -120;
+    const collideRadius = inModal ? 22 : 14;
+
     const sim = d3
       .forceSimulation(nodes)
-      .force("link", d3.forceLink(edges).id((d) => d.id).distance(60).strength(0.6))
-      .force("charge", d3.forceManyBody().strength(-120))
+      .force("link", d3.forceLink(edges).id((d) => d.id).distance(linkDistance).strength(0.6))
+      .force("charge", d3.forceManyBody().strength(chargeStrength))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collide", d3.forceCollide(14));
+      .force("collide", d3.forceCollide(collideRadius));
 
     const drag = d3
       .drag()
