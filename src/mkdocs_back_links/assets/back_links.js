@@ -139,8 +139,39 @@
     window.__mblLocal = data;
 
     const svg = pane.querySelector(".mbl-graph-svg");
-    // Defer one tick so the SVG has dimensions
-    requestAnimationFrame(() => renderGraph(svg, data));
+    let globalCache = null;
+    let currentRender = null;
+
+    requestAnimationFrame(() => {
+      currentRender = renderGraph(svg, data);
+    });
+
+    pane.querySelectorAll(".mbl-graph-toggle button").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const view = btn.dataset.view;
+        pane.querySelectorAll(".mbl-graph-toggle button").forEach((b) => {
+          b.setAttribute("aria-pressed", String(b === btn));
+        });
+        if (view === "local") {
+          if (currentRender) currentRender.simulation.stop();
+          currentRender = renderGraph(svg, data);
+          return;
+        }
+        // global
+        if (!globalCache) {
+          try {
+            const res = await fetch("/assets/back_links/graph.json");
+            globalCache = await res.json();
+            globalCache.current = data.current;
+          } catch (_e) {
+            return;
+          }
+        }
+        if (currentRender) currentRender.simulation.stop();
+        currentRender = renderGraph(svg, globalCache);
+      });
+    });
+
     document.dispatchEvent(new CustomEvent("mbl:pane-ready"));
   }
 
