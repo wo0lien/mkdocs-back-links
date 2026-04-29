@@ -38,3 +38,26 @@ def extract_links(markdown: str) -> list[str]:
             continue
         out.append(href)
     return out
+
+
+import posixpath
+
+
+def resolve_link(source_id: str, href: str) -> str | None:
+    """Resolve a link href from a source page to a target page id.
+
+    `source_id` and the returned id are paths relative to the docs root, using
+    forward slashes, ending in `.md`. Returns None when the link doesn't point
+    to a markdown page or escapes the docs root.
+    """
+    target = href.split("#", 1)[0].split("?", 1)[0]
+    if not target.endswith(".md"):
+        return None
+    if target.startswith("/"):
+        candidate = posixpath.normpath(target.lstrip("/"))
+    else:
+        source_dir = posixpath.dirname(source_id)
+        candidate = posixpath.normpath(posixpath.join(source_dir, target))
+    if candidate.startswith("..") or candidate.startswith("/"):
+        return None
+    return candidate
