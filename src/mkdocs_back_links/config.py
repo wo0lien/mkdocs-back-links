@@ -14,7 +14,6 @@ class _BacklinksSection(Config):
 class _GraphSection(Config):
     enabled = c.Type(bool, default=True)
     height = c.Type(str, default="40vh")
-    default_view = c.Choice(("local", "global"), default="local")
     max_nodes = c.Type(int, default=500)
     exclude = c.ListOfItems(c.Type(str), default=[])
 

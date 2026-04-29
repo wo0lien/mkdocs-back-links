@@ -66,34 +66,26 @@
   color: var(--md-default-fg-color--light);
 }
 
-.mbl-graph-toggle {
-  display: inline-flex;
-  border: 1px solid var(--md-default-fg-color--lightest);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.mbl-graph-toggle button {
-  background: transparent;
-  border: 0;
-  padding: 0.15rem 0.6rem;
-  font: inherit;
-  color: var(--md-default-fg-color--light);
-  cursor: pointer;
-}
-
-.mbl-graph-toggle button[aria-pressed="true"] {
-  background: var(--md-primary-fg-color);
-  color: var(--md-primary-bg-color);
-}
-
-.mbl-graph-expand {
+.mbl-graph-expand,
+.mbl-graph-close {
   background: transparent;
   border: 0;
   cursor: pointer;
   color: var(--md-default-fg-color--light);
   font-size: 1rem;
   line-height: 1;
+  padding: 0.1rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.mbl-graph-expand:hover,
+.mbl-graph-close:hover {
+  color: var(--md-primary-fg-color);
+}
+
+.mbl-graph-expand svg {
+  display: block;
 }
 
 .mbl-graph-svg {
@@ -107,6 +99,19 @@
 .mbl-graph-node { fill: var(--md-default-fg-color); cursor: pointer; }
 .mbl-graph-node--current { fill: var(--md-primary-fg-color); }
 .mbl-graph-link { stroke: var(--md-default-fg-color--lightest); stroke-opacity: 0.8; }
+
+.mbl-graph-label {
+  font-size: 0.7rem;
+  font-family: var(--md-text-font-family, system-ui), sans-serif;
+  fill: var(--md-default-fg-color--light);
+  pointer-events: none;
+  user-select: none;
+}
+
+.mbl-graph-label--current {
+  fill: var(--md-primary-fg-color);
+  font-weight: 600;
+}
 
 /* Modal overlay for expanded view */
 .mbl-graph-modal {

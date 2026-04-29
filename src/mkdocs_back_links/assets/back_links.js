@@ -2,6 +2,11 @@
 (function () {
   "use strict";
 
+  const EXPAND_ICON_SVG =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">' +
+    '<path fill="currentColor" d="M9.5,13.09L10.91,14.5L6.41,19H10V21H3V14H5V17.59L9.5,13.09M10.91,9.5L9.5,10.91L5,6.41V10H3V3H10V5H6.41L10.91,9.5M14.5,13.09L19,17.59V14H21V21H14V19H17.59L13.09,14.5L14.5,13.09M13.09,9.5L17.59,5H14V3H21V10H19V6.41L14.5,10.91L13.09,9.5Z"/>' +
+    '</svg>';
+
   function readLocalGraph() {
     const tag = document.getElementById("mbl-local-graph");
     if (!tag) return null;
@@ -14,25 +19,22 @@
 
   function readSettings() {
     const tag = document.getElementById("mbl-settings");
-    if (!tag) return { max_nodes: 500, default_view: "local" };
+    if (!tag) return { max_nodes: 500 };
     try { return JSON.parse(tag.textContent); }
-    catch (_e) { return { max_nodes: 500, default_view: "local" }; }
+    catch (_e) { return { max_nodes: 500 }; }
   }
 
   function buildPaneElement() {
     const pane = document.createElement("aside");
     pane.className = "mbl-graph-pane";
-    pane.innerHTML = `
-      <div class="mbl-graph-header">
-        <h3>Graph</h3>
-        <div class="mbl-graph-toggle" role="group" aria-label="Graph view">
-          <button type="button" data-view="local" aria-pressed="true">Local</button>
-          <button type="button" data-view="global" aria-pressed="false">Global</button>
-        </div>
-        <button type="button" class="mbl-graph-expand" title="Expand" aria-label="Expand graph">⤢</button>
-      </div>
-      <svg class="mbl-graph-svg" xmlns="http://www.w3.org/2000/svg"></svg>
-    `;
+    pane.innerHTML =
+      '<div class="mbl-graph-header">' +
+        '<h3>Graph</h3>' +
+        '<button type="button" class="mbl-graph-expand" title="Expand graph" aria-label="Expand graph">' +
+          EXPAND_ICON_SVG +
+        '</button>' +
+      '</div>' +
+      '<svg class="mbl-graph-svg" xmlns="http://www.w3.org/2000/svg"></svg>';
     return pane;
   }
 
@@ -49,12 +51,10 @@
     const width = svgEl.clientWidth || 200;
     const height = svgEl.clientHeight || 200;
 
-    // 1. Set up svg and root
     const svg = d3.select(svgEl);
     svg.selectAll("*").remove();
     const root = svg.append("g").attr("class", "mbl-graph-root");
 
-    // 2. Set up zoom on svg
     const zoom = d3
       .zoom()
       .scaleExtent([0.25, 4])
@@ -63,7 +63,6 @@
       });
     svg.call(zoom).on("dblclick.zoom", null);
 
-    // 3. Create nodes/edges data, link selection, node selection
     const nodes = data.nodes.map((n) => Object.assign({}, n));
     const edges = data.edges.map((e) => Object.assign({}, e));
     const currentId = data.current;
@@ -89,15 +88,24 @@
 
     node.append("title").text((d) => d.title);
 
-    // 4. Create simulation
+    const label = root
+      .append("g")
+      .attr("class", "mbl-graph-labels")
+      .selectAll("text")
+      .data(nodes)
+      .join("text")
+      .attr("class", (d) => "mbl-graph-label" + (d.id === currentId ? " mbl-graph-label--current" : ""))
+      .attr("dx", (d) => (d.id === currentId ? 9 : 7))
+      .attr("dy", "0.35em")
+      .text((d) => d.title);
+
     const sim = d3
       .forceSimulation(nodes)
-      .force("link", d3.forceLink(edges).id((d) => d.id).distance(40).strength(0.6))
-      .force("charge", d3.forceManyBody().strength(-80))
+      .force("link", d3.forceLink(edges).id((d) => d.id).distance(60).strength(0.6))
+      .force("charge", d3.forceManyBody().strength(-120))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collide", d3.forceCollide(8));
+      .force("collide", d3.forceCollide(10));
 
-    // 5. Set up drag (references sim)
     const drag = d3
       .drag()
       .on("start", (event, d) => {
@@ -111,17 +119,14 @@
       })
       .on("end", (event, d) => {
         if (!event.active) sim.alphaTarget(0);
-        // pinned: leave fx/fy set so it stays put
       });
 
-    // 6. Attach drag and dblclick to node
     node.call(drag).on("dblclick", (_event, d) => {
       d.fx = null;
       d.fy = null;
       sim.alpha(0.3).restart();
     });
 
-    // 7. Set sim tick handler
     sim.on("tick", () => {
       link
         .attr("x1", (d) => d.source.x)
@@ -129,41 +134,40 @@
         .attr("x2", (d) => d.target.x)
         .attr("y2", (d) => d.target.y);
       node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
+      label.attr("x", (d) => d.x).attr("y", (d) => d.y);
     });
 
-    // 8. Freeze check: if node count exceeds max_nodes, run fixed ticks and stop
     const settings = readSettings();
     if (nodes.length > settings.max_nodes) {
-      // run a fixed number of ticks then stop
       sim.stop();
       for (let i = 0; i < 200; i++) sim.tick();
-      // manually paint final positions
       link
         .attr("x1", (d) => d.source.x).attr("y1", (d) => d.source.y)
         .attr("x2", (d) => d.target.x).attr("y2", (d) => d.target.y);
       node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
+      label.attr("x", (d) => d.x).attr("y", (d) => d.y);
     }
 
     return { svgRoot: root, simulation: sim };
   }
 
-  function openModal(currentData) {
+  function openModal(globalData) {
     const overlay = document.createElement("div");
     overlay.className = "mbl-graph-modal";
-    overlay.innerHTML = `
-      <div class="mbl-graph-modal__inner">
-        <div class="mbl-graph-header">
-          <h3>Graph</h3>
-          <button type="button" class="mbl-graph-expand" aria-label="Close">×</button>
-        </div>
-        <svg class="mbl-graph-svg" xmlns="http://www.w3.org/2000/svg"></svg>
-      </div>`;
+    overlay.innerHTML =
+      '<div class="mbl-graph-modal__inner">' +
+        '<div class="mbl-graph-header">' +
+          '<h3>Graph</h3>' +
+          '<button type="button" class="mbl-graph-close" aria-label="Close">×</button>' +
+        '</div>' +
+        '<svg class="mbl-graph-svg" xmlns="http://www.w3.org/2000/svg"></svg>' +
+      '</div>';
     document.body.appendChild(overlay);
     const close = () => overlay.remove();
     overlay.addEventListener("click", (e) => {
       if (e.target === overlay) close();
     });
-    overlay.querySelector(".mbl-graph-expand").addEventListener("click", close);
+    overlay.querySelector(".mbl-graph-close").addEventListener("click", close);
     document.addEventListener(
       "keydown",
       function onKey(e) {
@@ -173,7 +177,7 @@
         }
       }
     );
-    requestAnimationFrame(() => renderGraph(overlay.querySelector(".mbl-graph-svg"), currentData));
+    requestAnimationFrame(() => renderGraph(overlay.querySelector(".mbl-graph-svg"), globalData));
   }
 
   function init() {
@@ -188,51 +192,20 @@
     window.__mblLocal = data;
 
     const svg = pane.querySelector(".mbl-graph-svg");
+    requestAnimationFrame(() => renderGraph(svg, data));
+
     let globalCache = null;
-    let currentRender = null;
-    let activeData = data;
-
-    const settings = readSettings();
-    if (settings.default_view === "global") {
-      // simulate clicking the Global pill once the pane is ready
-      requestAnimationFrame(() => {
-        const globalBtn = pane.querySelector('.mbl-graph-toggle button[data-view="global"]');
-        if (globalBtn) globalBtn.click();
-      });
-    } else {
-      requestAnimationFrame(() => { currentRender = renderGraph(svg, data); });
-    }
-
-    pane.querySelectorAll(".mbl-graph-toggle button").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const view = btn.dataset.view;
-        pane.querySelectorAll(".mbl-graph-toggle button").forEach((b) => {
-          b.setAttribute("aria-pressed", String(b === btn));
-        });
-        if (view === "local") {
-          if (currentRender) currentRender.simulation.stop();
-          currentRender = renderGraph(svg, data);
-          activeData = data;
+    pane.querySelector(".mbl-graph-expand").addEventListener("click", async () => {
+      if (!globalCache) {
+        try {
+          const res = await fetch("/assets/back_links/graph.json");
+          globalCache = await res.json();
+          globalCache.current = data.current;
+        } catch (_e) {
           return;
         }
-        // global
-        if (!globalCache) {
-          try {
-            const res = await fetch("/assets/back_links/graph.json");
-            globalCache = await res.json();
-            globalCache.current = data.current;
-          } catch (_e) {
-            return;
-          }
-        }
-        if (currentRender) currentRender.simulation.stop();
-        currentRender = renderGraph(svg, globalCache);
-        activeData = globalCache;
-      });
-    });
-
-    pane.querySelector(".mbl-graph-expand").addEventListener("click", () => {
-      openModal(activeData);
+      }
+      openModal(globalCache);
     });
 
     document.dispatchEvent(new CustomEvent("mbl:pane-ready"));

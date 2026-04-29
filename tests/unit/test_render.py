@@ -57,10 +57,9 @@ from mkdocs_back_links.render import render_settings_data
 
 
 def test_settings_data_emits_json():
-    html = render_settings_data({"max_nodes": 500, "default_view": "local"})
+    html = render_settings_data({"max_nodes": 500})
     assert 'id="mbl-settings"' in html
     import json, re
     m = re.search(r'>(.*)</script>', html, re.DOTALL)
     parsed = json.loads(m.group(1))
     assert parsed["max_nodes"] == 500
-    assert parsed["default_view"] == "local"
