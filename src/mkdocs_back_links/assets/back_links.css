@@ -1,1 +1,36 @@
-/* mkdocs-back-links — populated in later tasks */
+/* mkdocs-back-links — backlinks section + graph pane */
+
+.mbl-backlinks {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--md-default-fg-color--lightest);
+  font-size: 0.85rem;
+}
+
+.mbl-backlinks h2 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+  color: var(--md-default-fg-color--light);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mbl-backlinks ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mbl-backlinks li {
+  margin: 0.2rem 0;
+}
+
+.mbl-backlinks a {
+  color: var(--md-typeset-a-color);
+  text-decoration: none;
+}
+
+.mbl-backlinks a:hover {
+  text-decoration: underline;
+}
