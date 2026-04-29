@@ -59,7 +59,9 @@
     if (!isFinite(minX)) return;
     const bboxW = Math.max(maxX - minX, 1);
     const bboxH = Math.max(maxY - minY, 1);
-    const padding = 40;
+    // Small graphs appear over-zoomed at default padding; scale the margin up
+    // so the graph occupies a smaller share of the container.
+    const padding = nodes.length < 10 ? 60 : 40;
     const scale = Math.min(
       (width - padding * 2) / bboxW,
       (height - padding * 2) / bboxH,
