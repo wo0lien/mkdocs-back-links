@@ -147,6 +147,35 @@
     return { svgRoot: root, simulation: sim };
   }
 
+  function openModal(currentData) {
+    const overlay = document.createElement("div");
+    overlay.className = "mbl-graph-modal";
+    overlay.innerHTML = `
+      <div class="mbl-graph-modal__inner">
+        <div class="mbl-graph-header">
+          <h3>Graph</h3>
+          <button type="button" class="mbl-graph-expand" aria-label="Close">×</button>
+        </div>
+        <svg class="mbl-graph-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) close();
+    });
+    overlay.querySelector(".mbl-graph-expand").addEventListener("click", close);
+    document.addEventListener(
+      "keydown",
+      function onKey(e) {
+        if (e.key === "Escape") {
+          close();
+          document.removeEventListener("keydown", onKey);
+        }
+      }
+    );
+    requestAnimationFrame(() => renderGraph(overlay.querySelector(".mbl-graph-svg"), currentData));
+  }
+
   function init() {
     const target = findSidebarTarget();
     if (!target) return;
@@ -161,6 +190,7 @@
     const svg = pane.querySelector(".mbl-graph-svg");
     let globalCache = null;
     let currentRender = null;
+    let activeData = data;
 
     const settings = readSettings();
     if (settings.default_view === "global") {
@@ -182,6 +212,7 @@
         if (view === "local") {
           if (currentRender) currentRender.simulation.stop();
           currentRender = renderGraph(svg, data);
+          activeData = data;
           return;
         }
         // global
@@ -196,7 +227,12 @@
         }
         if (currentRender) currentRender.simulation.stop();
         currentRender = renderGraph(svg, globalCache);
+        activeData = globalCache;
       });
+    });
+
+    pane.querySelector(".mbl-graph-expand").addEventListener("click", () => {
+      openModal(activeData);
     });
 
     document.dispatchEvent(new CustomEvent("mbl:pane-ready"));
