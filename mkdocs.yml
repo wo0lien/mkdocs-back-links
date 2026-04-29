@@ -1,0 +1,19 @@
+site_name: mkdocs-back-links demo
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+nav:
+  - Home: index.md
+  - Guides:
+      - guides/install.md
+      - guides/configure.md
+  - Concepts:
+      - concepts/architecture.md
+      - concepts/internals.md
+plugins:
+  - search
+  - back-links
+exclude_docs: |
+  superpowers/
