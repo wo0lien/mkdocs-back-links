@@ -5,8 +5,10 @@ the right sidebar, for [Material for MkDocs][material].
 
 ## Install
 
+From git (until a PyPI release is published):
+
 ```bash
-pip install mkdocs-back-links
+pip install git+https://github.com/wo0lien/mkdocs-back-links.git@v0.1.0
 ```
 
 Then add the plugin to `mkdocs.yml`:
@@ -27,7 +29,6 @@ plugins:
       graph:
         enabled: true
         height: "40vh"
-        default_view: "local"   # or "global"
         max_nodes: 500
         exclude:
           - "tags.md"
