@@ -81,7 +81,7 @@
       .data(nodes)
       .join("circle")
       .attr("class", (d) => "mbl-graph-node" + (d.id === currentId ? " mbl-graph-node--current" : ""))
-      .attr("r", (d) => (d.id === currentId ? 6 : 4))
+      .attr("r", (d) => (d.id === currentId ? 10 : 7))
       .on("click", (_event, d) => {
         if (d.url) window.location.href = d.url;
       });
@@ -95,7 +95,7 @@
       .data(nodes)
       .join("text")
       .attr("class", (d) => "mbl-graph-label" + (d.id === currentId ? " mbl-graph-label--current" : ""))
-      .attr("dx", (d) => (d.id === currentId ? 9 : 7))
+      .attr("dx", (d) => (d.id === currentId ? 14 : 11))
       .attr("dy", "0.35em")
       .text((d) => d.title);
 
@@ -104,7 +104,7 @@
       .force("link", d3.forceLink(edges).id((d) => d.id).distance(60).strength(0.6))
       .force("charge", d3.forceManyBody().strength(-120))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collide", d3.forceCollide(10));
+      .force("collide", d3.forceCollide(14));
 
     const drag = d3
       .drag()
