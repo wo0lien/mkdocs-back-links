@@ -11,7 +11,13 @@ from mkdocs.structure.files import File, Files
 from mkdocs.structure.pages import Page
 
 from .config import BackLinksConfig
-from .linkgraph import build_edges, inverse_page_index, local_subgraph
+from .linkgraph import (
+    build_edges,
+    extract_sections,
+    inverse_page_index,
+    inverse_section_index,
+    local_subgraph,
+)
 from .render import render_backlinks_section, render_local_graph_data, render_settings_data
 
 
@@ -25,8 +31,11 @@ class BackLinksPlugin(BasePlugin[BackLinksConfig]):
         self._titles: dict[str, str] = {}
         self._urls: dict[str, str] = {}
         self._page_overrides: dict[str, dict] = {}
-        self._edges: list[tuple[str, str]] = []
+        self._sections: dict[str, list] = {}
+        self._section_titles: dict[tuple[str, str], str] = {}
+        self._edges: list = []
         self._inverse: dict[str, list[str]] = {}
+        self._inverse_section: dict[tuple[str, str], list] = {}
         return config
 
     def on_files(self, files: Files, config):
@@ -46,11 +55,17 @@ class BackLinksPlugin(BasePlugin[BackLinksConfig]):
         meta_overrides = (page.meta or {}).get("back_links") or {}
         if isinstance(meta_overrides, dict):
             self._page_overrides[page_id] = meta_overrides
+        sections = extract_sections(markdown, list(self.config.graph.section_levels))
+        self._sections[page_id] = sections
+        for s in sections:
+            self._section_titles[(page_id, s.slug)] = s.title
         return markdown
 
     def on_env(self, env, config, files):
-        self._edges = build_edges(self._markdown, section_levels=self.config.graph.section_levels)
+        levels = list(self.config.graph.section_levels)
+        self._edges = build_edges(self._markdown, section_levels=levels)
         self._inverse = inverse_page_index(self._edges)
+        self._inverse_section = inverse_section_index(self._edges)
         return env
 
     def on_page_context(self, context, *, page: Page, config, nav):
