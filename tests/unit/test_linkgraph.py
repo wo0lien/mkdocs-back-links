@@ -45,24 +45,23 @@ from mkdocs_back_links.linkgraph import resolve_link
 
 
 def test_resolve_relative_in_same_dir():
-    assert resolve_link("guides/install.md", "configure.md") == "guides/configure.md"
+    assert resolve_link("guides/install.md", "configure.md") == ("guides/configure.md", None)
 
 
 def test_resolve_parent_dir():
-    assert resolve_link("guides/install.md", "../concepts/architecture.md") == "concepts/architecture.md"
+    assert resolve_link("guides/install.md", "../concepts/architecture.md") == ("concepts/architecture.md", None)
 
 
-def test_resolve_strips_anchor():
-    assert resolve_link("guides/install.md", "configure.md#prereqs") == "guides/configure.md"
+def test_resolve_keeps_anchor():
+    assert resolve_link("guides/install.md", "configure.md#prereqs") == ("guides/configure.md", "prereqs")
 
 
-def test_resolve_strips_query():
-    assert resolve_link("guides/install.md", "configure.md?x=1") == "guides/configure.md"
+def test_resolve_strips_query_keeps_anchor():
+    assert resolve_link("guides/install.md", "configure.md?x=1#sec") == ("guides/configure.md", "sec")
 
 
 def test_resolve_root_relative_path():
-    # paths starting with / are treated as docs-root-relative
-    assert resolve_link("guides/install.md", "/concepts/architecture.md") == "concepts/architecture.md"
+    assert resolve_link("guides/install.md", "/concepts/architecture.md") == ("concepts/architecture.md", None)
 
 
 def test_resolve_returns_none_for_non_md():
@@ -72,6 +71,10 @@ def test_resolve_returns_none_for_non_md():
 
 def test_resolve_returns_none_for_escape_above_root():
     assert resolve_link("page.md", "../../../etc/passwd.md") is None
+
+
+def test_resolve_empty_fragment_is_none():
+    assert resolve_link("a.md", "b.md#") == ("b.md", None)
 
 
 from mkdocs_back_links.linkgraph import build_edges, inverse_index

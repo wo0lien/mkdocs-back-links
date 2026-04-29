@@ -45,24 +45,28 @@ def extract_links(markdown: str) -> list[str]:
 import posixpath
 
 
-def resolve_link(source_id: str, href: str) -> str | None:
-    """Resolve a link href from a source page to a target page id.
+def resolve_link(source_id: str, href: str) -> tuple[str, str | None] | None:
+    """Resolve a link href to (target_page_id, fragment_or_None).
 
-    `source_id` and the returned id are paths relative to the docs root, using
-    forward slashes, ending in `.md`. Returns None when the link doesn't point
-    to a markdown page or escapes the docs root.
+    Returns None when the link doesn't point to a markdown page or escapes
+    the docs root. The fragment is the slug after `#`, or None if absent.
     """
-    target = href.split("#", 1)[0].split("?", 1)[0]
-    if not target.endswith(".md"):
+    # Extract fragment from original href before stripping query
+    _, _, raw_frag = href.partition("#")
+    fragment = raw_frag or None
+    # Strip fragment and query to get the page path
+    no_frag = href.split("#", 1)[0]
+    page_part = no_frag.split("?", 1)[0]
+    if not page_part.endswith(".md"):
         return None
-    if target.startswith("/"):
-        candidate = posixpath.normpath(target.lstrip("/"))
+    if page_part.startswith("/"):
+        candidate = posixpath.normpath(page_part.lstrip("/"))
     else:
         source_dir = posixpath.dirname(source_id)
-        candidate = posixpath.normpath(posixpath.join(source_dir, target))
+        candidate = posixpath.normpath(posixpath.join(source_dir, page_part))
     if candidate.startswith("..") or candidate.startswith("/"):
         return None
-    return candidate
+    return candidate, fragment
 
 
 from collections import defaultdict
@@ -75,8 +79,11 @@ def build_edges(pages: Mapping[str, str]) -> list[tuple[str, str]]:
     seen: set[tuple[str, str]] = set()
     for source_id, markdown in pages.items():
         for href in extract_links(markdown):
-            target = resolve_link(source_id, href)
-            if target is None or target == source_id or target not in pages:
+            resolved = resolve_link(source_id, href)
+            if resolved is None:
+                continue
+            target, _frag = resolved
+            if target == source_id or target not in pages:
                 continue
             seen.add((source_id, target))
     return sorted(seen)
