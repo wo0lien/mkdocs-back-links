@@ -90,7 +90,7 @@
 
 .mbl-graph-svg {
   flex: 1;
-  width: 100%;
+  width: calc(100% - 0.8rem);
   cursor: grab;
   border: 1px solid var(--md-default-fg-color--lightest);
   border-radius: 0.4rem;
