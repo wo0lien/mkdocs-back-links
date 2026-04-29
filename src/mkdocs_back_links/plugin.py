@@ -89,6 +89,21 @@ class BackLinksPlugin(BasePlugin[BackLinksConfig]):
             page.content = (page.content or "") + extra
         return context
 
+    _ASSET_TAGS_HEAD = (
+        '<link rel="stylesheet" href="/assets/back_links/back_links.css">'
+    )
+    _ASSET_TAGS_BODY = (
+        '<script src="/assets/back_links/d3.min.js" defer></script>'
+        '<script src="/assets/back_links/back_links.js" defer></script>'
+    )
+
+    def on_post_page(self, output: str, *, page, config):
+        if "</head>" in output:
+            output = output.replace("</head>", self._ASSET_TAGS_HEAD + "</head>", 1)
+        if "</body>" in output:
+            output = output.replace("</body>", self._ASSET_TAGS_BODY + "</body>", 1)
+        return output
+
     def on_post_build(self, config):
         site_dir = Path(config["site_dir"])
         out_dir = site_dir / "assets" / "back_links"

@@ -48,3 +48,11 @@ def test_frontmatter_disables_backlinks(tmp_path):
     site = _build(tmp_path)
     no_back = (site / "no-backlinks" / "index.html").read_text()
     assert "mbl-backlinks" not in no_back
+
+
+def test_assets_referenced(tmp_path):
+    site = _build(tmp_path)
+    target_html = (site / "target" / "index.html").read_text()
+    assert "/assets/back_links/back_links.css" in target_html
+    assert "/assets/back_links/back_links.js" in target_html
+    assert "/assets/back_links/d3.min.js" in target_html
