@@ -28,11 +28,11 @@
   border-top: 1px solid var(--md-default-fg-color--lightest);
   font-size: 0.8em;
   line-height: 1.5;
-  /* Lock to the graph pane's height so the two top-borders line up when the
-     reader has scrolled to the bottom of the article. The var is set by JS
-     once the pane is laid out; falls back to `auto` when the pane is absent
-     (graph disabled, JS not loaded). overflow-y handles the rare case where
-     a page has more inbound page-level links than the pane is tall. */
+  /* Lock to the graph pane's height. Combined with JS lifting the pane to
+     match this block's bottom y when in viewport, this makes the two
+     border-tops land on the same y at the end of the article. Falls back
+     to natural sizing when the pane isn't present. overflow-y handles the
+     edge case of more inbound links than the pane is tall. */
   height: var(--mbl-pane-height, auto);
   overflow-y: auto;
   box-sizing: border-box;

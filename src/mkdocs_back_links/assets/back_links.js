@@ -571,6 +571,7 @@
     // which Material sets to `display: none` at narrow breakpoints.
     const scrollwrap = target.querySelector(".md-sidebar__scrollwrap");
     const footer = document.querySelector(".md-footer");
+    const articleBacklinks = document.querySelector(".mbl-backlinks");
     const syncPaneBox = () => {
       const r = target.getBoundingClientRect();
       pane.style.left = `${r.left}px`;
@@ -581,11 +582,19 @@
         const overlap = window.innerHeight - footerTop;
         if (overlap > 0) bottom = overlap;
       }
+      // When the article's bottom backlinks block is on screen, lift the pane
+      // so its bottom edge sits at the same y as the backlinks bottom edge.
+      // Heights are locked equal via --mbl-pane-height, so equal bottoms
+      // ⇒ equal tops ⇒ the two `border-top` separators land at the same y.
+      if (articleBacklinks) {
+        const blBottom = articleBacklinks.getBoundingClientRect().bottom;
+        if (blBottom > 0 && blBottom < window.innerHeight) {
+          bottom = Math.max(bottom, window.innerHeight - blBottom);
+        }
+      }
       pane.style.bottom = `${bottom}px`;
       const h = pane.offsetHeight;
       if (scrollwrap) scrollwrap.style.paddingBottom = `${h}px`;
-      // Expose pane height so the bottom backlinks block can match it as a
-      // min-height — keeps the two horizontal separators aligned.
       document.documentElement.style.setProperty("--mbl-pane-height", `${h}px`);
     };
     syncPaneBox();
