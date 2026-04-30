@@ -577,7 +577,11 @@
         if (overlap > 0) bottom = overlap;
       }
       pane.style.bottom = `${bottom}px`;
-      if (scrollwrap) scrollwrap.style.paddingBottom = `${pane.offsetHeight}px`;
+      const h = pane.offsetHeight;
+      if (scrollwrap) scrollwrap.style.paddingBottom = `${h}px`;
+      // Expose pane height so the bottom backlinks block can match it as a
+      // min-height — keeps the two horizontal separators aligned.
+      document.documentElement.style.setProperty("--mbl-pane-height", `${h}px`);
     };
     syncPaneBox();
     window.addEventListener("resize", syncPaneBox);

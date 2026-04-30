@@ -28,6 +28,11 @@
   border-top: 1px solid var(--md-default-fg-color--lightest);
   font-size: 0.8em;
   line-height: 1.5;
+  /* Match the graph pane's height so the two top-borders line up when the
+     reader has scrolled to the bottom of the article. The var is set by JS
+     once the pane is laid out; falls back to 0 when the pane is absent. */
+  min-height: var(--mbl-pane-height, 0);
+  box-sizing: border-box;
 }
 
 .md-typeset .mbl-backlinks h2 {
