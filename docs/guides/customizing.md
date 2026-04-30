@@ -75,6 +75,92 @@ extra_css:
 .mbl-graph-link--contains { stroke-dasharray: 6 2; }
 ```
 
+## Recipes
+
+Worked examples you can copy-paste into your `extra_css` and tweak.
+
+### Restyle the per-section backlinks aside
+
+The default is a thin top rule. The structure is:
+
+```html
+<aside class="mbl-section-backlinks" data-section="<slug>">
+  <h3>Backlinks to "Section Title"</h3>
+  <ul>…</ul>
+</aside>
+```
+
+Three common alternative looks:
+
+**Callout / blockquote style**
+
+```css
+.md-typeset .mbl-section-backlinks {
+  border-top: 0;
+  border-left: 3px solid var(--md-default-fg-color--lightest);
+  background: var(--md-code-bg-color);
+  padding: 0.6em 0.8em;
+}
+```
+
+**Card / box**
+
+```css
+.md-typeset .mbl-section-backlinks {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.4rem;
+  padding: 0.6em 0.8em;
+  background: var(--md-default-bg-color);
+}
+```
+
+**Bracketed (top + bottom rules)**
+
+```css
+.md-typeset .mbl-section-backlinks {
+  border-top: 1px solid var(--md-default-fg-color--lighter);
+  border-bottom: 1px solid var(--md-default-fg-color--lighter);
+  padding: 0.4em 0;
+}
+```
+
+You can also target a specific section by its slug via the
+`data-section` attribute:
+
+```css
+.md-typeset .mbl-section-backlinks[data-section="api"] {
+  border-left: 3px solid var(--md-accent-fg-color);
+}
+```
+
+### Hide the heading on per-section asides
+
+```css
+.md-typeset .mbl-section-backlinks h3 {
+  display: none;
+}
+```
+
+### Make graph nodes square
+
+```css
+.mbl-graph-node {
+  rx: 1;
+}
+```
+
+(SVG circles ignore `rx`; if you need real squares, swap the elements
+via JS — beyond the scope of CSS-only theming.)
+
+### Custom dashes on the section→page edges
+
+```css
+.mbl-graph-link--contains {
+  stroke-dasharray: 6 2;
+  stroke-opacity: 1;
+}
+```
+
 ## Class reference
 
 The class names below are stable and intended for theming.
