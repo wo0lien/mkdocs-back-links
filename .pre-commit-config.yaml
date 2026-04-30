@@ -1,0 +1,15 @@
+---
+repos:
+  - repo: local
+    hooks:
+      - id: yamlfix
+        name: yamlfix
+        entry: yamlfix
+        language: system
+        files: \.(yaml|yml)$
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.2
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format

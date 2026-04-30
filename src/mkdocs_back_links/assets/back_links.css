@@ -46,11 +46,10 @@
 /* --- Graph pane (sticky bottom of secondary sidebar) --- */
 
 .mbl-graph-pane {
-  position: sticky;
+  position: fixed;
   bottom: 0;
   background: var(--md-default-bg-color);
   border-top: 1px solid var(--md-default-fg-color--lightest);
-  height: var(--mbl-graph-height, 40vh);
   display: flex;
   flex-direction: column;
   z-index: 2;
@@ -98,11 +97,10 @@
 }
 
 .mbl-graph-svg {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   align-self: center;
   width: calc(100% - 0.8rem);
   aspect-ratio: 1 / 1;
-  max-height: calc(100% - 0.8rem);
   cursor: grab;
   border: 1px solid var(--md-default-fg-color--lightest);
   border-radius: 0.4rem;
@@ -114,22 +112,30 @@
 .mbl-graph-svg:active { cursor: grabbing; }
 
 .mbl-graph-node {
-  fill: var(--md-default-fg-color);
+  fill: #37474f; /* solid neutral; theme vars are alpha-based and let edges show through */
   cursor: pointer;
   transition: fill 120ms ease-out, opacity 150ms ease-out;
+}
+
+[data-md-color-scheme="slate"] .mbl-graph-node {
+  fill: #cfd8dc;
 }
 
 .mbl-graph-node:hover {
   fill: var(--md-accent-fg-color);
 }
 
-.mbl-graph-node--current { fill: var(--md-primary-fg-color); }
+.mbl-graph-node--current {
+  fill: var(--md-accent-fg-color);
+  stroke: var(--md-primary-fg-color);
+  stroke-width: 2;
+}
 
 .mbl-graph-node--faded { opacity: 0.18; }
 
 .mbl-graph-link {
-  stroke: var(--md-default-fg-color--lightest);
-  stroke-opacity: 0.8;
+  stroke: var(--md-default-fg-color--lighter);
+  stroke-opacity: 0.9;
   transition: stroke 150ms ease-out, stroke-opacity 150ms ease-out, stroke-width 150ms ease-out;
 }
 
@@ -213,13 +219,17 @@
 
 /* --- Section nodes & contains edges --- */
 .mbl-graph-node--section {
-  fill: var(--md-default-fg-color--light);
+  fill: #b0bec5;
   r: 5;
+}
+
+[data-md-color-scheme="slate"] .mbl-graph-node--section {
+  fill: #78909c;
 }
 
 .mbl-graph-link--contains {
   stroke-dasharray: 3 3;
-  stroke-opacity: 0.45;
+  stroke-opacity: 0.75;
 }
 
 /* --- Scrolled-into-view indicator (distinct from hover) --- */
@@ -233,12 +243,24 @@
   font-weight: 600;
 }
 
+/* --- Clustered sections: hidden by default, revealed when scrolled into view --- */
+.mbl-graph-node--clustered,
+.mbl-graph-label--clustered,
+.mbl-graph-link--clustered {
+  display: none;
+}
+
+.mbl-graph-node--clustered.mbl-graph-node--scrolled,
+.mbl-graph-label--clustered.mbl-graph-label--scrolled,
+.mbl-graph-link--clustered.mbl-graph-link--scrolled {
+  display: unset;
+}
+
 /* --- Per-section backlinks aside --- */
 .md-typeset .mbl-section-backlinks {
-  margin: 1.5em 0;
-  padding: 0.6em 0.8em;
-  border-left: 3px solid var(--md-default-fg-color--lightest);
-  background: var(--md-code-bg-color, var(--md-default-bg-color));
+  margin: 1.5em 0 1em;
+  padding-top: 0.4em;
+  border-top: 1px solid var(--md-default-fg-color--lightest);
   font-size: 0.8em;
   line-height: 1.5;
 }

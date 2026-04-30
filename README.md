@@ -33,6 +33,9 @@ plugins:
         max_nodes: 500
         section_levels: [2, 3]          # heading levels eligible for section treatment
         section_nodes_same_page: false  # if true, sections targeted only by same-page links also become graph nodes
+        center_strength: 0.08           # gravity pulling nodes toward center; raise to bring orphans closer, lower to spread out
+        section_cluster_threshold: 2    # cluster section nodes into their parent page when count exceeds this; current page reveals the scrolled-into-view section
+        hide_when_orphan: true          # hide the small graph pane on pages with no incoming or outgoing links
         exclude:
           - "tags.md"
           - "404.md"

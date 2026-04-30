@@ -6,12 +6,15 @@ theme:
     - navigation.sections
 nav:
   - Home: index.md
+  - Walkthrough: walkthrough.md
   - Guides:
       - guides/install.md
       - guides/configure.md
   - Concepts:
       - concepts/architecture.md
       - concepts/internals.md
+  - Changelog: changelog.md
+  - FAQ: faq.md
 plugins:
   - search
   - back-links
