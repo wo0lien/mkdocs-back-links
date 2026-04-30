@@ -45,6 +45,68 @@
     );
   }
 
+  function cssEscape(s) {
+    if (window.CSS && window.CSS.escape) return window.CSS.escape(s);
+    return String(s).replace(/[^a-zA-Z0-9_-]/g, (c) => "\\" + c);
+  }
+
+  function setupScrollSpy(pane, localData) {
+    if (!("IntersectionObserver" in window)) return;
+
+    const sectionNodes = localData.nodes.filter(
+      (n) => n.type === "section" && n.page === localData.current
+    );
+    if (sectionNodes.length === 0) return;
+
+    const headings = [];
+    for (const sn of sectionNodes) {
+      const slug = sn.id.split("#", 2)[1];
+      const el = document.getElementById(slug);
+      if (el) {
+        el.dataset.mblSectionId = sn.id;
+        headings.push({ el, sectionId: sn.id });
+      }
+    }
+    if (!headings.length) return;
+
+    let activeId = localData.current;
+
+    const apply = (newId) => {
+      if (newId === activeId) return;
+      pane
+        .querySelectorAll(".mbl-graph-node--scrolled, .mbl-graph-label--scrolled")
+        .forEach((n) => n.classList.remove("mbl-graph-node--scrolled", "mbl-graph-label--scrolled"));
+      const els = pane.querySelectorAll(`[data-graph-id="${cssEscape(newId)}"]`);
+      els.forEach((el) => {
+        if (el.tagName === "circle") el.classList.add("mbl-graph-node--scrolled");
+        if (el.tagName === "text") el.classList.add("mbl-graph-label--scrolled");
+      });
+      activeId = newId;
+    };
+
+    const visible = new Set();
+    const obs = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const sid = entry.target.dataset.mblSectionId;
+          if (entry.isIntersecting) visible.add(sid);
+          else visible.delete(sid);
+        }
+        if (visible.size === 0) {
+          apply(localData.current);
+        } else {
+          const ordered = headings
+            .filter((h) => visible.has(h.sectionId))
+            .sort((a, b) => a.el.getBoundingClientRect().top - b.el.getBoundingClientRect().top);
+          if (ordered.length) apply(ordered[0].sectionId);
+        }
+      },
+      { rootMargin: "-20% 0px -70% 0px" }
+    );
+
+    headings.forEach((h) => obs.observe(h.el));
+  }
+
   function fitToView(svgEl, zoom, nodes, width, height) {
     const d3 = window.d3;
     if (!d3 || !nodes.length) return;
@@ -113,7 +175,7 @@
       .selectAll("line")
       .data(edges)
       .join("line")
-      .attr("class", "mbl-graph-link")
+      .attr("class", (d) => "mbl-graph-link" + (d.kind === "contains" ? " mbl-graph-link--contains" : ""))
       .attr("stroke-width", 1);
 
     const edgeId = (e) => {
@@ -159,8 +221,17 @@
       .selectAll("circle")
       .data(nodes)
       .join("circle")
-      .attr("class", (d) => "mbl-graph-node" + (d.id === currentId ? " mbl-graph-node--current" : ""))
-      .attr("r", (d) => (d.id === currentId ? 10 : 7))
+      .attr("class", (d) => {
+        const cls = ["mbl-graph-node"];
+        if (d.type === "section") cls.push("mbl-graph-node--section");
+        if (d.id === currentId) cls.push("mbl-graph-node--current");
+        return cls.join(" ");
+      })
+      .attr("r", (d) => {
+        if (d.type === "section") return 5;
+        return d.id === currentId ? 10 : 7;
+      })
+      .attr("data-graph-id", (d) => d.id)
       .on("click", (_event, d) => {
         if (d.url) window.location.href = d.url;
       })
@@ -178,6 +249,7 @@
       .attr("class", (d) => "mbl-graph-label" + (d.id === currentId ? " mbl-graph-label--current" : ""))
       .attr("dx", (d) => (d.id === currentId ? 14 : 11))
       .attr("dy", "0.35em")
+      .attr("data-graph-id", (d) => d.id)
       .text((d) => d.title);
 
     // Scale forces with container size — the modal is much larger than the
@@ -297,7 +369,11 @@
     window.__mblLocal = data;
 
     const svg = pane.querySelector(".mbl-graph-svg");
-    requestAnimationFrame(() => renderGraph(svg, data));
+    let currentRender;
+    requestAnimationFrame(() => {
+      currentRender = renderGraph(svg, data);
+    });
+    setupScrollSpy(pane, data);
 
     let globalCache = null;
     pane.querySelector(".mbl-graph-expand").addEventListener("click", async () => {

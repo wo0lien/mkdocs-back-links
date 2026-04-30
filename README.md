@@ -8,7 +8,7 @@ the right sidebar, for [Material for MkDocs][material].
 From git (until a PyPI release is published):
 
 ```bash
-pip install git+https://github.com/wo0lien/mkdocs-back-links.git@v0.1.0
+pip install git+https://github.com/wo0lien/mkdocs-back-links.git@v0.2.0
 ```
 
 Then add the plugin to `mkdocs.yml`:
@@ -26,10 +26,13 @@ plugins:
       backlinks:
         enabled: true
         heading: "Backlinks"
+        section_collapse_threshold: 3   # collapse section blocks when entries > this; 0 disables
       graph:
         enabled: true
         height: "40vh"
         max_nodes: 500
+        section_levels: [2, 3]          # heading levels eligible for section treatment
+        section_nodes_same_page: false  # if true, sections targeted only by same-page links also become graph nodes
         exclude:
           - "tags.md"
           - "404.md"
@@ -56,5 +59,12 @@ page-to-page graph, and:
 - Injects a sticky pane into Material's secondary sidebar at runtime; the pane
   renders the graph with d3-force and an SVG, styled with Material's CSS
   custom properties so it adopts your theme automatically.
+
+v0.2 adds **section-aware backlinks**: when another page links to
+`page.md#some-header`, a separate backlinks block renders at the end of that
+section, the section gets its own node in the graph (when targeted across
+pages), and a "you are here" indicator on the graph follows your scroll position.
+Same-page entries are labeled by the source heading (e.g. `# Overview`)
+instead of the page title.
 
 [material]: https://squidfunk.github.io/mkdocs-material/
