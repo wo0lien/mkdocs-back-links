@@ -2,9 +2,14 @@
 (function () {
   "use strict";
 
+  // Material Design icons (mdi): arrow-expand, window-close.
   const EXPAND_ICON_SVG =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">' +
-    '<path fill="currentColor" d="M9.5,13.09L10.91,14.5L6.41,19H10V21H3V14H5V17.59L9.5,13.09M10.91,9.5L9.5,10.91L5,6.41V10H3V3H10V5H6.41L10.91,9.5M14.5,13.09L19,17.59V14H21V21H14V19H17.59L13.09,14.5L14.5,13.09M13.09,9.5L17.59,5H14V3H21V10H19V6.41L14.5,10.91L13.09,9.5Z"/>' +
+    '<path fill="currentColor" d="M10 21v-2H6.41l4.5-4.5-1.41-1.41-4.5 4.5V14H3v7zm4.5-10.09 4.5-4.5V10h2V3h-7v2h3.59l-4.5 4.5z"/>' +
+    '</svg>';
+  const CLOSE_ICON_SVG =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">' +
+    '<path fill="currentColor" d="M13.46 12 19 17.54V19h-1.46L12 13.46 6.46 19H5v-1.46L10.54 12 5 6.46V5h1.46L12 10.54 17.54 5H19v1.46z"/>' +
     '</svg>';
 
   function readLocalGraph() {
@@ -511,7 +516,7 @@
       '<div class="mbl-graph-modal__inner">' +
         '<div class="mbl-graph-header">' +
           '<h3>Graph</h3>' +
-          '<button type="button" class="mbl-graph-close" aria-label="Close">×</button>' +
+          '<button type="button" class="mbl-graph-close" aria-label="Close">' + CLOSE_ICON_SVG + '</button>' +
         '</div>' +
         '<svg class="mbl-graph-svg" xmlns="http://www.w3.org/2000/svg"></svg>' +
       '</div>';

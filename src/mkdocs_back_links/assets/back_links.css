@@ -115,7 +115,8 @@
   color: var(--md-primary-fg-color);
 }
 
-.mbl-graph-expand svg {
+.mbl-graph-expand svg,
+.mbl-graph-close svg {
   display: block;
 }
 
