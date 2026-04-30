@@ -1,6 +1,3 @@
-import pytest
-from mkdocs.config.base import ValidationError
-
 from mkdocs_back_links.config import BackLinksConfig
 
 
@@ -12,37 +9,37 @@ def _validate(raw):
 
 
 def test_defaults_validate():
-    errors, warnings, cfg = _validate({})
+    errors, _warnings, cfg = _validate({})
     assert errors == []
     assert cfg.backlinks.enabled is True
-    assert cfg.backlinks.heading == "Backlinks"
+    assert cfg.backlinks.heading == 'Backlinks'
     assert cfg.graph.enabled is True
-    assert cfg.graph.height == "40vh"
+    assert cfg.graph.height == '40vh'
     assert cfg.graph.max_nodes == 500
     assert cfg.graph.exclude == []
 
 
 def test_overrides():
-    errors, warnings, cfg = _validate(
+    errors, _warnings, cfg = _validate(
         {
-            "backlinks": {"enabled": False, "heading": "Linked from"},
-            "graph": {
-                "enabled": True,
-                "height": "30vh",
-                "max_nodes": 200,
-                "exclude": ["404.md", "tags.md"],
+            'backlinks': {'enabled': False, 'heading': 'Linked from'},
+            'graph': {
+                'enabled': True,
+                'height': '30vh',
+                'max_nodes': 200,
+                'exclude': ['404.md', 'tags.md'],
             },
         }
     )
     assert errors == []
     assert cfg.backlinks.enabled is False
-    assert cfg.backlinks.heading == "Linked from"
+    assert cfg.backlinks.heading == 'Linked from'
     assert cfg.graph.max_nodes == 200
-    assert cfg.graph.exclude == ["404.md", "tags.md"]
+    assert cfg.graph.exclude == ['404.md', 'tags.md']
 
 
 def test_bad_max_nodes_type_rejected():
-    errors, _, _ = _validate({"graph": {"max_nodes": "lots"}})
+    errors, _, _ = _validate({'graph': {'max_nodes': 'lots'}})
     assert errors
 
 
@@ -57,8 +54,8 @@ def test_section_defaults():
 def test_section_overrides():
     errors, _, cfg = _validate(
         {
-            "backlinks": {"section_collapse_threshold": 0},
-            "graph": {"section_levels": [2], "section_nodes_same_page": True},
+            'backlinks': {'section_collapse_threshold': 0},
+            'graph': {'section_levels': [2], 'section_nodes_same_page': True},
         }
     )
     assert errors == []
@@ -68,10 +65,10 @@ def test_section_overrides():
 
 
 def test_bad_section_levels_rejected():
-    errors, _, _ = _validate({"graph": {"section_levels": ["two"]}})
+    errors, _, _ = _validate({'graph': {'section_levels': ['two']}})
     assert errors
 
 
 def test_bad_section_collapse_threshold_rejected():
-    errors, _, _ = _validate({"backlinks": {"section_collapse_threshold": "many"}})
+    errors, _, _ = _validate({'backlinks': {'section_collapse_threshold': 'many'}})
     assert errors

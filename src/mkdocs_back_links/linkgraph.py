@@ -2,28 +2,39 @@
 
 from __future__ import annotations
 
+import posixpath
 import re
-from typing import NamedTuple
+from collections import defaultdict
+from typing import TYPE_CHECKING, NamedTuple
+
 from markdown.extensions.toc import slugify as _md_slugify
 
-_FENCE_RE = re.compile(r"^([`~]{3,})[^\n]*\n.*?\n\1[ \t]*$", re.DOTALL | re.MULTILINE)
-_INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
+
+_FENCE_RE = re.compile(r'^([`~]{3,})[^\n]*\n.*?\n\1[ \t]*$', re.DOTALL | re.MULTILINE)
+_INLINE_CODE_RE = re.compile(r'`[^`\n]*`')
 # [text](href "optional title") — not preceded by '!' (image)
-_LINK_RE = re.compile(r"(?<!!)\[(?:[^\[\]]|\\\[|\\\])*\]\(\s*([^)\s]+)(?:\s+\"[^\"]*\")?\s*\)")
+_LINK_RE = re.compile(
+    r'(?<!!)\[(?:[^\[\]]|\\\[|\\\])*\]\(\s*([^)\s]+)(?:\s+\"[^\"]*\")?\s*\)'
+)
 
 
 def _strip_code(md: str) -> str:
-    md = _FENCE_RE.sub("", md)
-    md = _INLINE_CODE_RE.sub("", md)
-    return md
+    md = _FENCE_RE.sub('', md)
+    return _INLINE_CODE_RE.sub('', md)
 
 
 def _is_external(href: str) -> bool:
-    return bool(re.match(r"^[a-zA-Z][a-zA-Z0-9+.\-]*://", href)) or href.startswith("//") or href.startswith("mailto:")
+    return (
+        bool(re.match(r'^[a-zA-Z][a-zA-Z0-9+.\-]*://', href))
+        or href.startswith('//')
+        or href.startswith('mailto:')
+    )
 
 
 def _is_anchor_only(href: str) -> bool:
-    return href.startswith("#")
+    return href.startswith('#')
 
 
 def extract_links(markdown: str) -> list[str]:
@@ -42,9 +53,6 @@ def extract_links(markdown: str) -> list[str]:
     return out
 
 
-import posixpath
-
-
 def resolve_link(source_id: str, href: str) -> tuple[str, str | None] | None:
     """Resolve a link href to (target_page_id, fragment_or_None).
 
@@ -52,25 +60,21 @@ def resolve_link(source_id: str, href: str) -> tuple[str, str | None] | None:
     the docs root. The fragment is the slug after `#`, or None if absent.
     """
     # Extract fragment from original href before stripping query
-    _, _, raw_frag = href.partition("#")
+    _, _, raw_frag = href.partition('#')
     fragment = raw_frag or None
     # Strip fragment and query to get the page path
-    no_frag = href.split("#", 1)[0]
-    page_part = no_frag.split("?", 1)[0]
-    if not page_part.endswith(".md"):
+    no_frag = href.split('#', 1)[0]
+    page_part = no_frag.split('?', 1)[0]
+    if not page_part.endswith('.md'):
         return None
-    if page_part.startswith("/"):
-        candidate = posixpath.normpath(page_part.lstrip("/"))
+    if page_part.startswith('/'):
+        candidate = posixpath.normpath(page_part.lstrip('/'))
     else:
         source_dir = posixpath.dirname(source_id)
         candidate = posixpath.normpath(posixpath.join(source_dir, page_part))
-    if candidate.startswith("..") or candidate.startswith("/"):
+    if candidate.startswith('..') or candidate.startswith('/'):
         return None
     return candidate, fragment
-
-
-from collections import defaultdict
-from typing import Iterable, Mapping
 
 
 def build_edges(
@@ -94,7 +98,7 @@ def build_edges(
             if target_page not in pages:
                 continue
             seen.add((source_id, source_section, target_page, target_section))
-    return sorted(seen, key=lambda e: (e[0], e[1] or "", e[2], e[3] or ""))
+    return sorted(seen, key=lambda e: (e[0], e[1] or '', e[2], e[3] or ''))
 
 
 def inverse_page_index(
@@ -119,10 +123,10 @@ def inverse_section_index(
         if tgt_sec is None:
             continue
         inv[(tgt, tgt_sec)].add((src, src_sec))
-    return {k: sorted(v, key=lambda e: (e[0], e[1] or "")) for k, v in inv.items()}
+    return {k: sorted(v, key=lambda e: (e[0], e[1] or '')) for k, v in inv.items()}
 
 
-_HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(.+?)[ \t]*#*[ \t]*$")
+_HEADING_RE = re.compile(r'^(#{1,6})[ \t]+(.+?)[ \t]*#*[ \t]*$')
 
 
 class Section(NamedTuple):
@@ -148,7 +152,11 @@ def extract_sections(markdown: str, levels: list[int]) -> list[Section]:
         if level not in levels:
             continue
         title = m.group(2).strip()
-        out.append(Section(level=level, title=title, slug=_md_slugify(title, "-"), line_offset=i))
+        out.append(
+            Section(
+                level=level, title=title, slug=_md_slugify(title, '-'), line_offset=i
+            )
+        )
     return out
 
 
@@ -167,7 +175,7 @@ def extract_links_in_sections(
     for line in cleaned.splitlines():
         m = _HEADING_RE.match(line)
         if m and len(m.group(1)) in section_levels:
-            current = _md_slugify(m.group(2).strip(), "-")
+            current = _md_slugify(m.group(2).strip(), '-')
             continue
         for lm in _LINK_RE.finditer(line):
             href = lm.group(1)
