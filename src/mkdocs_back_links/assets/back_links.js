@@ -17,11 +17,13 @@
     }
   }
 
+  const SETTINGS_DEFAULTS = { max_nodes: 500, center_strength: 0.08, section_cluster_threshold: 2 };
+
   function readSettings() {
     const tag = document.getElementById("mbl-settings");
-    if (!tag) return { max_nodes: 500 };
-    try { return JSON.parse(tag.textContent); }
-    catch (_e) { return { max_nodes: 500 }; }
+    if (!tag) return { ...SETTINGS_DEFAULTS };
+    try { return { ...SETTINGS_DEFAULTS, ...JSON.parse(tag.textContent) }; }
+    catch (_e) { return { ...SETTINGS_DEFAULTS }; }
   }
 
   function buildPaneElement() {
@@ -50,61 +52,69 @@
     return String(s).replace(/[^a-zA-Z0-9_-]/g, (c) => "\\" + c);
   }
 
-  function setupScrollSpy(pane, localData) {
-    if (!("IntersectionObserver" in window)) return;
-
+  function setupScrollSpy(pane, localData, onReveal) {
     const sectionNodes = localData.nodes.filter(
       (n) => n.type === "section" && n.page === localData.current
     );
     if (sectionNodes.length === 0) return;
 
-    const headings = [];
+    // Mirror Material's own TOC scroll-spy: it tags the active TOC entry with
+    // `md-nav__link--active`. Watching that single source keeps the graph
+    // indicator perfectly in sync with the highlighted TOC item.
+    const toc = document.querySelector('[data-md-component="toc"]');
+    if (!toc) return;
+
+    const slugToSectionId = new Map();
     for (const sn of sectionNodes) {
       const slug = sn.id.split("#", 2)[1];
-      const el = document.getElementById(slug);
-      if (el) {
-        el.dataset.mblSectionId = sn.id;
-        headings.push({ el, sectionId: sn.id });
-      }
+      if (slug) slugToSectionId.set(slug, sn.id);
     }
-    if (!headings.length) return;
 
     let activeId = localData.current;
 
     const apply = (newId) => {
       if (newId === activeId) return;
       pane
-        .querySelectorAll(".mbl-graph-node--scrolled, .mbl-graph-label--scrolled")
-        .forEach((n) => n.classList.remove("mbl-graph-node--scrolled", "mbl-graph-label--scrolled"));
+        .querySelectorAll(".mbl-graph-node--scrolled, .mbl-graph-label--scrolled, .mbl-graph-link--scrolled")
+        .forEach((n) =>
+          n.classList.remove(
+            "mbl-graph-node--scrolled",
+            "mbl-graph-label--scrolled",
+            "mbl-graph-link--scrolled"
+          )
+        );
       const els = pane.querySelectorAll(`[data-graph-id="${cssEscape(newId)}"]`);
       els.forEach((el) => {
         if (el.tagName === "circle") el.classList.add("mbl-graph-node--scrolled");
         if (el.tagName === "text") el.classList.add("mbl-graph-label--scrolled");
       });
+      pane
+        .querySelectorAll(`line[data-graph-target="${cssEscape(newId)}"]`)
+        .forEach((el) => el.classList.add("mbl-graph-link--scrolled"));
       activeId = newId;
+      if (onReveal) onReveal(newId);
     };
 
-    const visible = new Set();
-    const obs = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          const sid = entry.target.dataset.mblSectionId;
-          if (entry.isIntersecting) visible.add(sid);
-          else visible.delete(sid);
-        }
-        if (visible.size === 0) {
-          apply(localData.current);
-        } else {
-          const ordered = headings
-            .filter((h) => visible.has(h.sectionId))
-            .sort((a, b) => a.el.getBoundingClientRect().top - b.el.getBoundingClientRect().top);
-          if (ordered.length) apply(ordered[0].sectionId);
-        }
-      },
-      { rootMargin: "-20% 0px -70% 0px" }
-    );
+    const detectActive = () => {
+      // Multiple links may carry --active for nested headings; Material orders
+      // them with the deepest last, so the last match is the most specific.
+      const actives = toc.querySelectorAll(".md-nav__link--active");
+      if (!actives.length) {
+        apply(localData.current);
+        return;
+      }
+      const href = actives[actives.length - 1].getAttribute("href") || "";
+      const slug = href.split("#")[1] || "";
+      apply(slugToSectionId.get(slug) || localData.current);
+    };
 
-    headings.forEach((h) => obs.observe(h.el));
+    detectActive();
+    const observer = new MutationObserver(detectActive);
+    observer.observe(toc, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class"],
+    });
   }
 
   function fitToView(svgEl, zoom, nodes, width, height) {
@@ -151,6 +161,7 @@
   function renderGraph(svgEl, data) {
     const d3 = window.d3;
     if (!d3) return;
+    const settings = readSettings();
     const width = svgEl.clientWidth || 200;
     const height = svgEl.clientHeight || 200;
 
@@ -167,15 +178,88 @@
     svg.call(zoom).on("dblclick.zoom", null);
 
     const nodes = data.nodes.map((n) => Object.assign({}, n));
-    const edges = data.edges.map((e) => Object.assign({}, e));
     const currentId = data.current;
+
+    // Build a set of section node ids that should cluster into their parent
+    // page. A page's sections are clustered when its eligible-section count
+    // exceeds settings.section_cluster_threshold. Clustered sections start
+    // hidden via CSS; for the current page, scroll-spy reveals one at a time.
+    const sectionsByPage = new Map();
+    const sectionToPage = new Map();
+    for (const n of nodes) {
+      if (n.type !== "section") continue;
+      if (!sectionsByPage.has(n.page)) sectionsByPage.set(n.page, []);
+      sectionsByPage.get(n.page).push(n.id);
+      sectionToPage.set(n.id, n.page);
+    }
+    const clusteredIds = new Set();
+    for (const [, ids] of sectionsByPage) {
+      if (ids.length > settings.section_cluster_threshold) {
+        for (const id of ids) clusteredIds.add(id);
+      }
+    }
+
+    // Edge handling for clustered sections:
+    //  - Cross-edges to/from a clustered section are kept in their original
+    //    section-level form but marked `--clustered` (hidden by CSS until
+    //    scroll-spy reveals the section). This is what restores the section's
+    //    direct connections when it pops out.
+    //  - We also synthesize a redirected page-level copy so the graph stays
+    //    visually connected while the section is hidden. Redirects dedupe
+    //    against any naturally-existing page-level cross-edge.
+    //  - `contains` edges are unchanged (page→section), marked clustered when
+    //    their target is clustered.
+    const seenEdges = new Set();
+    const edges = [];
+    const addEdge = (key, e) => {
+      if (seenEdges.has(key)) return;
+      seenEdges.add(key);
+      edges.push(e);
+    };
+    for (const raw of data.edges) {
+      if (raw.kind !== "cross") {
+        addEdge(`${raw.source}|${raw.target}|${raw.kind}`, { ...raw });
+        continue;
+      }
+      const srcClustered = clusteredIds.has(raw.source);
+      const tgtClustered = clusteredIds.has(raw.target);
+      if (!srcClustered && !tgtClustered) {
+        addEdge(`${raw.source}|${raw.target}|cross`, { ...raw });
+        continue;
+      }
+      // Original (clustered) cross-edge — hidden by default, revealed when
+      // its clustered endpoint is the active scrolled-into-view section.
+      const clusteredEndpoint = tgtClustered ? raw.target : raw.source;
+      addEdge(`${raw.source}|${raw.target}|cross|orig`, {
+        ...raw,
+        _clusteredOriginal: true,
+        _clusteredEndpoint: clusteredEndpoint,
+      });
+      // Redirected page-level shadow — visible whenever the section is hidden.
+      const rsrc = srcClustered ? sectionToPage.get(raw.source) : raw.source;
+      const rtgt = tgtClustered ? sectionToPage.get(raw.target) : raw.target;
+      if (rsrc !== rtgt) {
+        addEdge(`${rsrc}|${rtgt}|cross`, { source: rsrc, target: rtgt, kind: "cross" });
+      }
+    }
 
     const link = root
       .append("g")
       .selectAll("line")
       .data(edges)
       .join("line")
-      .attr("class", (d) => "mbl-graph-link" + (d.kind === "contains" ? " mbl-graph-link--contains" : ""))
+      .attr("class", (d) => {
+        const cls = ["mbl-graph-link"];
+        if (d.kind === "contains") cls.push("mbl-graph-link--contains");
+        if (d.kind === "contains" && clusteredIds.has(d.target)) cls.push("mbl-graph-link--clustered");
+        if (d._clusteredOriginal) cls.push("mbl-graph-link--clustered");
+        return cls.join(" ");
+      })
+      .attr("data-graph-target", (d) => {
+        if (d._clusteredOriginal) return d._clusteredEndpoint;
+        if (d.kind === "contains") return d.target;
+        return null;
+      })
       .attr("stroke-width", 1);
 
     const edgeId = (e) => {
@@ -225,6 +309,7 @@
         const cls = ["mbl-graph-node"];
         if (d.type === "section") cls.push("mbl-graph-node--section");
         if (d.id === currentId) cls.push("mbl-graph-node--current");
+        if (clusteredIds.has(d.id)) cls.push("mbl-graph-node--clustered");
         return cls.join(" ");
       })
       .attr("r", (d) => {
@@ -246,7 +331,12 @@
       .selectAll("text")
       .data(nodes)
       .join("text")
-      .attr("class", (d) => "mbl-graph-label" + (d.id === currentId ? " mbl-graph-label--current" : ""))
+      .attr("class", (d) => {
+        const cls = ["mbl-graph-label"];
+        if (d.id === currentId) cls.push("mbl-graph-label--current");
+        if (clusteredIds.has(d.id)) cls.push("mbl-graph-label--clustered");
+        return cls.join(" ");
+      })
       .attr("dx", (d) => (d.id === currentId ? 14 : 11))
       .attr("dy", "0.35em")
       .attr("data-graph-id", (d) => d.id)
@@ -259,11 +349,50 @@
     const chargeStrength = inModal ? -500 : -120;
     const collideRadius = inModal ? 22 : 14;
 
+    // Clustered sections are excluded from the simulation so they don't push
+    // or pull other nodes. Their positions are pinned to a small halo around
+    // their parent page each tick. When scroll-spy reveals one (revealedId),
+    // it is dynamically added to the simulation so the layout rearranges.
+    let revealedId = null;
+    const idIsInSim = (id) => !clusteredIds.has(id) || id === revealedId;
+    const computeSimSet = () => ({
+      sNodes: nodes.filter((n) => idIsInSim(n.id)),
+      sEdges: edges.filter((e) => {
+        const s = typeof e.source === "object" ? e.source.id : e.source;
+        const t = typeof e.target === "object" ? e.target.id : e.target;
+        return idIsInSim(s) && idIsInSim(t);
+      }),
+    });
+    let { sNodes: simNodes, sEdges: simEdges } = computeSimSet();
+
+    const haloRadius = inModal ? 22 : 14;
+    for (const [, ids] of sectionsByPage) {
+      if (ids.length <= settings.section_cluster_threshold) continue;
+      ids.forEach((id, i) => {
+        const node = nodes.find((n) => n.id === id);
+        if (!node) return;
+        const angle = (2 * Math.PI * i) / ids.length;
+        node._haloX = Math.cos(angle) * haloRadius;
+        node._haloY = Math.sin(angle) * haloRadius;
+      });
+    }
+
+    const nodesById = new Map(nodes.map((n) => [n.id, n]));
+
     const sim = d3
-      .forceSimulation(nodes)
-      .force("link", d3.forceLink(edges).id((d) => d.id).distance(linkDistance).strength(0.6))
+      .forceSimulation(simNodes)
+      .force(
+        "link",
+        d3
+          .forceLink(simEdges)
+          .id((d) => d.id)
+          .distance((e) => (e.kind === "contains" ? linkDistance * 0.35 : linkDistance))
+          .strength((e) => (e.kind === "contains" ? 0.9 : 0.6))
+      )
       .force("charge", d3.forceManyBody().strength(chargeStrength))
       .force("center", d3.forceCenter(width / 2, height / 2))
+      .force("x", d3.forceX(width / 2).strength(settings.center_strength))
+      .force("y", d3.forceY(height / 2).strength(settings.center_strength))
       .force("collide", d3.forceCollide(collideRadius));
 
     const drag = d3
@@ -287,12 +416,26 @@
       sim.alpha(0.3).restart();
     });
 
+    const placeClusteredNodes = () => {
+      for (const n of nodes) {
+        if (!clusteredIds.has(n.id)) continue;
+        if (n.id === revealedId) continue; // simulation owns the revealed one
+        const p = nodesById.get(n.page);
+        if (p && typeof p.x === "number") {
+          n.x = p.x + (n._haloX || 0);
+          n.y = p.y + (n._haloY || 0);
+        }
+      }
+    };
+    const refX = (ref) => (typeof ref === "object" ? ref.x : nodesById.get(ref)?.x || 0);
+    const refY = (ref) => (typeof ref === "object" ? ref.y : nodesById.get(ref)?.y || 0);
     const paint = () => {
+      placeClusteredNodes();
       link
-        .attr("x1", (d) => d.source.x)
-        .attr("y1", (d) => d.source.y)
-        .attr("x2", (d) => d.target.x)
-        .attr("y2", (d) => d.target.y);
+        .attr("x1", (d) => refX(d.source))
+        .attr("y1", (d) => refY(d.source))
+        .attr("x2", (d) => refX(d.target))
+        .attr("y2", (d) => refY(d.target));
       node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
       label.attr("x", (d) => d.x).attr("y", (d) => d.y);
     };
@@ -300,7 +443,6 @@
 
     // Warm up the simulation synchronously so we can fit the viewport before
     // the user sees the graph, then optionally let it continue animating.
-    const settings = readSettings();
     const isFrozen = nodes.length > settings.max_nodes;
     sim.stop();
     const warmupTicks = isFrozen ? 300 : 150;
@@ -311,7 +453,19 @@
       sim.alpha(0.1).restart();
     }
 
-    return { svgRoot: root, simulation: sim };
+    const setRevealed = (id) => {
+      const next = id && clusteredIds.has(id) ? id : null;
+      if (next === revealedId) return;
+      revealedId = next;
+      // Seed the entering node at its current pinned (halo) position so the
+      // restarted simulation animates it from there into its new resting spot.
+      const fresh = computeSimSet();
+      sim.nodes(fresh.sNodes);
+      sim.force("link").links(fresh.sEdges);
+      sim.alpha(0.5).restart();
+    };
+
+    return { svgRoot: root, simulation: sim, setRevealed };
   }
 
   function openModal(globalData) {
@@ -368,12 +522,18 @@
     window.__mblPane = pane;
     window.__mblLocal = data;
 
-    const svg = pane.querySelector(".mbl-graph-svg");
-    let currentRender;
-    requestAnimationFrame(() => {
-      currentRender = renderGraph(svg, data);
-    });
-    setupScrollSpy(pane, data);
+    const hasLocalNodes = Array.isArray(data.nodes) && data.nodes.length > 0;
+    if (hasLocalNodes) {
+      const svg = pane.querySelector(".mbl-graph-svg");
+      requestAnimationFrame(() => {
+        const rendered = renderGraph(svg, data);
+        setupScrollSpy(pane, data, rendered && rendered.setRevealed);
+      });
+    } else {
+      pane.classList.add("mbl-graph-pane--header-only");
+      const svg = pane.querySelector(".mbl-graph-svg");
+      if (svg) svg.remove();
+    }
 
     let globalCache = null;
     pane.querySelector(".mbl-graph-expand").addEventListener("click", async () => {

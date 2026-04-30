@@ -56,6 +56,10 @@
   z-index: 2;
 }
 
+.mbl-graph-pane--header-only {
+  height: auto;
+}
+
 .mbl-graph-header {
   display: flex;
   align-items: center;
@@ -114,22 +118,30 @@
 .mbl-graph-svg:active { cursor: grabbing; }
 
 .mbl-graph-node {
-  fill: var(--md-default-fg-color);
+  fill: #37474f; /* solid neutral; theme vars are alpha-based and let edges show through */
   cursor: pointer;
   transition: fill 120ms ease-out, opacity 150ms ease-out;
+}
+
+[data-md-color-scheme="slate"] .mbl-graph-node {
+  fill: #cfd8dc;
 }
 
 .mbl-graph-node:hover {
   fill: var(--md-accent-fg-color);
 }
 
-.mbl-graph-node--current { fill: var(--md-primary-fg-color); }
+.mbl-graph-node--current {
+  fill: var(--md-accent-fg-color);
+  stroke: var(--md-primary-fg-color);
+  stroke-width: 2;
+}
 
 .mbl-graph-node--faded { opacity: 0.18; }
 
 .mbl-graph-link {
-  stroke: var(--md-default-fg-color--lightest);
-  stroke-opacity: 0.8;
+  stroke: var(--md-default-fg-color--lighter);
+  stroke-opacity: 0.9;
   transition: stroke 150ms ease-out, stroke-opacity 150ms ease-out, stroke-width 150ms ease-out;
 }
 
@@ -213,13 +225,17 @@
 
 /* --- Section nodes & contains edges --- */
 .mbl-graph-node--section {
-  fill: var(--md-default-fg-color--light);
+  fill: #b0bec5;
   r: 5;
+}
+
+[data-md-color-scheme="slate"] .mbl-graph-node--section {
+  fill: #78909c;
 }
 
 .mbl-graph-link--contains {
   stroke-dasharray: 3 3;
-  stroke-opacity: 0.45;
+  stroke-opacity: 0.75;
 }
 
 /* --- Scrolled-into-view indicator (distinct from hover) --- */
@@ -231,6 +247,19 @@
 
 .mbl-graph-label--scrolled {
   font-weight: 600;
+}
+
+/* --- Clustered sections: hidden by default, revealed when scrolled into view --- */
+.mbl-graph-node--clustered,
+.mbl-graph-label--clustered,
+.mbl-graph-link--clustered {
+  display: none;
+}
+
+.mbl-graph-node--clustered.mbl-graph-node--scrolled,
+.mbl-graph-label--clustered.mbl-graph-label--scrolled,
+.mbl-graph-link--clustered.mbl-graph-link--scrolled {
+  display: unset;
 }
 
 /* --- Per-section backlinks aside --- */

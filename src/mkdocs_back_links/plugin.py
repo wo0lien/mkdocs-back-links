@@ -182,7 +182,25 @@ class BackLinksPlugin(BasePlugin[BackLinksConfig]):
         if graph_enabled:
             page_edges = [(s, t) for s, _ss, t, _ts in self._edges if s != t]
             page_nodes_ids, _page_sub_edges = local_subgraph(page_id, page_edges)
+            is_orphan = len(page_nodes_ids) <= 1
+            hide_local = is_orphan and self.config.graph.hide_when_orphan
 
+        if graph_enabled and hide_local:
+            graph = {
+                "current": page_id,
+                "current_url": self._urls.get(page_id, "/" + page_id),
+                "nodes": [],
+                "edges": [],
+            }
+            extra += render_local_graph_data(graph)
+            settings = {
+                "max_nodes": self.config.graph.max_nodes,
+                "center_strength": self.config.graph.center_strength,
+                "section_cluster_threshold": self.config.graph.section_cluster_threshold,
+            }
+            extra += render_settings_data(settings)
+
+        if graph_enabled and not hide_local:
             nodes_by_id: dict[str, dict] = {
                 n: {
                     "id": n,
@@ -224,7 +242,11 @@ class BackLinksPlugin(BasePlugin[BackLinksConfig]):
                 "edges": sorted(edges_by_key.values(), key=lambda e: (e["source"], e["target"], e["kind"])),
             }
             extra += render_local_graph_data(graph)
-            settings = {"max_nodes": self.config.graph.max_nodes}
+            settings = {
+                "max_nodes": self.config.graph.max_nodes,
+                "center_strength": self.config.graph.center_strength,
+                "section_cluster_threshold": self.config.graph.section_cluster_threshold,
+            }
             extra += render_settings_data(settings)
 
         if extra:
