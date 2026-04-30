@@ -1,5 +1,23 @@
 /* mkdocs-back-links — backlinks section + graph pane */
 
+/* Theming hooks — override via the `graph.colors` plugin config or directly
+   in your own extra.css. Defaults track the Material theme. */
+:root {
+  --mbl-graph-node-fill: #37474f;
+  --mbl-graph-section-fill: #b0bec5;
+  --mbl-graph-current-fill: var(--md-accent-fg-color);
+  --mbl-graph-current-stroke: var(--md-primary-fg-color);
+  --mbl-graph-link: var(--md-default-fg-color--lighter);
+  --mbl-graph-highlight: var(--md-accent-fg-color);
+  --mbl-graph-label: var(--md-default-fg-color--light);
+  --mbl-graph-current-label: var(--md-primary-fg-color);
+}
+
+[data-md-color-scheme="slate"] {
+  --mbl-graph-node-fill: #cfd8dc;
+  --mbl-graph-section-fill: #78909c;
+}
+
 /* All selectors are scoped under .md-typeset to override Material's
    default typography (which would otherwise render the section as a
    full-size body heading + large list). */
@@ -112,35 +130,31 @@
 .mbl-graph-svg:active { cursor: grabbing; }
 
 .mbl-graph-node {
-  fill: #37474f; /* solid neutral; theme vars are alpha-based and let edges show through */
+  fill: var(--mbl-graph-node-fill);
   cursor: pointer;
   transition: fill 120ms ease-out, opacity 150ms ease-out;
 }
 
-[data-md-color-scheme="slate"] .mbl-graph-node {
-  fill: #cfd8dc;
-}
-
 .mbl-graph-node:hover {
-  fill: var(--md-accent-fg-color);
+  fill: var(--mbl-graph-highlight);
 }
 
 .mbl-graph-node--current {
-  fill: var(--md-accent-fg-color);
-  stroke: var(--md-primary-fg-color);
+  fill: var(--mbl-graph-current-fill);
+  stroke: var(--mbl-graph-current-stroke);
   stroke-width: 2;
 }
 
 .mbl-graph-node--faded { opacity: 0.18; }
 
 .mbl-graph-link {
-  stroke: var(--md-default-fg-color--lighter);
+  stroke: var(--mbl-graph-link);
   stroke-opacity: 0.9;
   transition: stroke 150ms ease-out, stroke-opacity 150ms ease-out, stroke-width 150ms ease-out;
 }
 
 .mbl-graph-link--active {
-  stroke: var(--md-accent-fg-color);
+  stroke: var(--mbl-graph-highlight);
   stroke-opacity: 1;
   stroke-width: 2;
 }
@@ -152,7 +166,7 @@
 .mbl-graph-label {
   font-size: 0.7rem;
   font-family: var(--md-text-font-family, system-ui), sans-serif;
-  fill: var(--md-default-fg-color--light);
+  fill: var(--mbl-graph-label);
   pointer-events: none;
   user-select: none;
   transition: opacity 150ms ease-out, font-size 150ms ease-out, fill 150ms ease-out;
@@ -161,7 +175,7 @@
 }
 
 .mbl-graph-label--current {
-  fill: var(--md-primary-fg-color);
+  fill: var(--mbl-graph-current-label);
   font-weight: 600;
 }
 
@@ -219,12 +233,8 @@
 
 /* --- Section nodes & contains edges --- */
 .mbl-graph-node--section {
-  fill: #b0bec5;
+  fill: var(--mbl-graph-section-fill);
   r: 5;
-}
-
-[data-md-color-scheme="slate"] .mbl-graph-node--section {
-  fill: #78909c;
 }
 
 .mbl-graph-link--contains {
@@ -234,7 +244,7 @@
 
 /* --- Scrolled-into-view indicator (distinct from hover) --- */
 .mbl-graph-node--scrolled {
-  stroke: var(--md-primary-fg-color);
+  stroke: var(--mbl-graph-current-stroke);
   stroke-width: 2;
   stroke-opacity: 0.9;
 }

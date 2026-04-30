@@ -45,7 +45,30 @@ class BackLinksPlugin(BasePlugin[BackLinksConfig]):
         self._edges: list = []
         self._inverse: dict[str, list[str]] = {}
         self._inverse_section: dict[tuple[str, str], list] = {}
+        self._color_style = self._build_color_style()
         return config
+
+    _COLOR_VAR_MAP = (
+        ('node', '--mbl-graph-node-fill'),
+        ('section', '--mbl-graph-section-fill'),
+        ('current_fill', '--mbl-graph-current-fill'),
+        ('current_stroke', '--mbl-graph-current-stroke'),
+        ('link', '--mbl-graph-link'),
+        ('highlight', '--mbl-graph-highlight'),
+        ('label', '--mbl-graph-label'),
+        ('current_label', '--mbl-graph-current-label'),
+    )
+
+    def _build_color_style(self) -> str:
+        colors = self.config.graph.colors
+        rules = [
+            f'{var}: {value};'
+            for field, var in self._COLOR_VAR_MAP
+            if (value := getattr(colors, field, ''))
+        ]
+        if not rules:
+            return ''
+        return f'<style>:root {{ {" ".join(rules)} }}</style>'
 
     def on_files(self, files: Files, config):
         for f in files:
@@ -295,7 +318,8 @@ class BackLinksPlugin(BasePlugin[BackLinksConfig]):
 
     def on_post_page(self, output: str, *, page, config):
         if '</head>' in output:
-            output = output.replace('</head>', self._ASSET_TAGS_HEAD + '</head>', 1)
+            head_inject = self._ASSET_TAGS_HEAD + self._color_style
+            output = output.replace('</head>', head_inject + '</head>', 1)
         if '</body>' in output:
             output = output.replace('</body>', self._ASSET_TAGS_BODY + '</body>', 1)
         return output
