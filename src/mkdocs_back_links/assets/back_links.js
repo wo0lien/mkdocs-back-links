@@ -41,10 +41,7 @@
   }
 
   function findSidebarTarget() {
-    return (
-      document.querySelector(".md-sidebar--secondary .md-sidebar__scrollwrap") ||
-      document.querySelector(".md-sidebar--secondary")
-    );
+    return document.querySelector(".md-sidebar--secondary");
   }
 
   function cssEscape(s) {
@@ -115,6 +112,40 @@
       attributes: true,
       attributeFilter: ["class"],
     });
+  }
+
+  // Elliptical-collision force: like d3.forceCollide, but the exclusion zone
+  // is an ellipse instead of a circle. yScale < 1 makes it taller than wide,
+  // which means vertically aligned pairs feel a strong y push — discouraging
+  // nodes from settling at the same height (and label rows from overlapping).
+  function forceCollideElliptical(radius, yScale) {
+    let nodes;
+    const force = () => {
+      for (let i = 0; i < nodes.length; i++) {
+        const a = nodes[i];
+        const ra = typeof radius === "function" ? radius(a) : radius;
+        for (let j = i + 1; j < nodes.length; j++) {
+          const b = nodes[j];
+          const rb = typeof radius === "function" ? radius(b) : radius;
+          const minDist = ra + rb;
+          const ax = a.x + a.vx, ay = a.y + a.vy;
+          const bx = b.x + b.vx, by = b.y + b.vy;
+          const dx = bx - ax;
+          const dy = by - ay;
+          const dyM = dy * yScale;
+          const dMSq = dx * dx + dyM * dyM;
+          if (dMSq >= minDist * minDist) continue;
+          const dM = Math.sqrt(dMSq) || 0.001;
+          const k = (minDist - dM) / dM / 2;
+          const px = dx * k;
+          const py = dy * k;
+          a.vx -= px; a.vy -= py;
+          b.vx += px; b.vy += py;
+        }
+      }
+    };
+    force.initialize = (n) => { nodes = n; };
+    return force;
   }
 
   function fitToView(svgEl, zoom, nodes, width, height) {
@@ -269,8 +300,11 @@
     };
 
     const focusNode = (focusId) => {
+      // `contains` edges are structural (page→its sections), not informational
+      // links, so they don't contribute to the hover highlight set.
       const connected = new Set([focusId]);
       for (const e of edges) {
+        if (e.kind !== "cross") continue;
         const [s, t] = edgeId(e);
         if (s === focusId) connected.add(t);
         if (t === focusId) connected.add(s);
@@ -281,10 +315,12 @@
         .classed("mbl-graph-label--hover", (n) => n.id === focusId);
       link
         .classed("mbl-graph-link--faded", (e) => {
+          if (e.kind !== "cross") return false;
           const [s, t] = edgeId(e);
           return s !== focusId && t !== focusId;
         })
         .classed("mbl-graph-link--active", (e) => {
+          if (e.kind !== "cross") return false;
           const [s, t] = edgeId(e);
           return s === focusId || t === focusId;
         });
@@ -393,7 +429,7 @@
       .force("center", d3.forceCenter(width / 2, height / 2))
       .force("x", d3.forceX(width / 2).strength(settings.center_strength))
       .force("y", d3.forceY(height / 2).strength(settings.center_strength))
-      .force("collide", d3.forceCollide(collideRadius));
+      .force("collide", forceCollideElliptical(collideRadius, 0.6));
 
     const drag = d3
       .drag()
@@ -521,6 +557,34 @@
     target.appendChild(pane);
     window.__mblPane = pane;
     window.__mblLocal = data;
+
+    // Pane is `position: fixed` with content-driven height — sync left/width
+    // to the sidebar's box and lift `bottom` above the footer once it scrolls
+    // into view. Also reserves matching space at the bottom of the TOC scroll
+    // so its last entries aren't covered by the pane. Pane is hidden on
+    // mobile automatically because it's a child of `.md-sidebar--secondary`,
+    // which Material sets to `display: none` at narrow breakpoints.
+    const scrollwrap = target.querySelector(".md-sidebar__scrollwrap");
+    const footer = document.querySelector(".md-footer");
+    const syncPaneBox = () => {
+      const r = target.getBoundingClientRect();
+      pane.style.left = `${r.left}px`;
+      pane.style.width = `${r.width}px`;
+      let bottom = 0;
+      if (footer) {
+        const footerTop = footer.getBoundingClientRect().top;
+        const overlap = window.innerHeight - footerTop;
+        if (overlap > 0) bottom = overlap;
+      }
+      pane.style.bottom = `${bottom}px`;
+      if (scrollwrap) scrollwrap.style.paddingBottom = `${pane.offsetHeight}px`;
+    };
+    syncPaneBox();
+    window.addEventListener("resize", syncPaneBox);
+    window.addEventListener("scroll", syncPaneBox, { passive: true });
+    if (window.ResizeObserver) {
+      new ResizeObserver(syncPaneBox).observe(pane);
+    }
 
     const hasLocalNodes = Array.isArray(data.nodes) && data.nodes.length > 0;
     if (hasLocalNodes) {

@@ -46,18 +46,13 @@
 /* --- Graph pane (sticky bottom of secondary sidebar) --- */
 
 .mbl-graph-pane {
-  position: sticky;
+  position: fixed;
   bottom: 0;
   background: var(--md-default-bg-color);
   border-top: 1px solid var(--md-default-fg-color--lightest);
-  height: var(--mbl-graph-height, 40vh);
   display: flex;
   flex-direction: column;
   z-index: 2;
-}
-
-.mbl-graph-pane--header-only {
-  height: auto;
 }
 
 .mbl-graph-header {
@@ -102,11 +97,10 @@
 }
 
 .mbl-graph-svg {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   align-self: center;
   width: calc(100% - 0.8rem);
   aspect-ratio: 1 / 1;
-  max-height: calc(100% - 0.8rem);
   cursor: grab;
   border: 1px solid var(--md-default-fg-color--lightest);
   border-radius: 0.4rem;
@@ -264,10 +258,9 @@
 
 /* --- Per-section backlinks aside --- */
 .md-typeset .mbl-section-backlinks {
-  margin: 1.5em 0;
-  padding: 0.6em 0.8em;
-  border-left: 3px solid var(--md-default-fg-color--lightest);
-  background: var(--md-code-bg-color, var(--md-default-bg-color));
+  margin: 1.5em 0 1em;
+  padding-top: 0.4em;
+  border-top: 1px solid var(--md-default-fg-color--lightest);
   font-size: 0.8em;
   line-height: 1.5;
 }
