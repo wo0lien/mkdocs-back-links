@@ -1,0 +1,42 @@
+[project]
+name = "mkdocs-back-links"
+version = "0.1.0"
+description = "Backlinks and graph view for Material-themed MkDocs sites"
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "MIT" }
+keywords = ["mkdocs", "mkdocs-plugin", "material", "backlinks", "graph", "wiki"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Framework :: MkDocs",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Documentation",
+  "Topic :: Software Development :: Documentation",
+]
+dependencies = [
+  "mkdocs>=1.6",
+  "mkdocs-material>=9.5",
+]
+
+[project.urls]
+Homepage = "https://github.com/wo0lien/mkdocs-back-links"
+Repository = "https://github.com/wo0lien/mkdocs-back-links"
+Issues = "https://github.com/wo0lien/mkdocs-back-links/issues"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+]
+
+[project.entry-points."mkdocs.plugins"]
+back-links = "mkdocs_back_links.plugin:BackLinksPlugin"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mkdocs_back_links"]

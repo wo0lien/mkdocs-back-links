@@ -1,0 +1,212 @@
+/* mkdocs-back-links — backlinks section + graph pane */
+
+/* All selectors are scoped under .md-typeset to override Material's
+   default typography (which would otherwise render the section as a
+   full-size body heading + large list). */
+
+.md-typeset .mbl-backlinks {
+  margin-top: 3rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--md-default-fg-color--lightest);
+  font-size: 0.8em;
+  line-height: 1.5;
+}
+
+.md-typeset .mbl-backlinks h2 {
+  font-size: inherit;
+  font-weight: 600;
+  margin: 0 0 0.4em;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--md-default-fg-color--light);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.md-typeset .mbl-backlinks ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.md-typeset .mbl-backlinks li {
+  margin: 0.15em 0;
+}
+
+.md-typeset .mbl-backlinks a {
+  color: var(--md-typeset-a-color);
+  text-decoration: none;
+}
+
+.md-typeset .mbl-backlinks a:hover {
+  text-decoration: underline;
+}
+
+/* --- Graph pane (sticky bottom of secondary sidebar) --- */
+
+.mbl-graph-pane {
+  position: sticky;
+  bottom: 0;
+  background: var(--md-default-bg-color);
+  border-top: 1px solid var(--md-default-fg-color--lightest);
+  height: var(--mbl-graph-height, 40vh);
+  display: flex;
+  flex-direction: column;
+  z-index: 2;
+}
+
+.mbl-graph-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.mbl-graph-header h3 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--md-default-fg-color--light);
+  text-decoration: none;
+  border-bottom: 0;
+}
+
+.mbl-graph-expand,
+.mbl-graph-close {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: var(--md-default-fg-color--light);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.1rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.mbl-graph-expand:hover,
+.mbl-graph-close:hover {
+  color: var(--md-primary-fg-color);
+}
+
+.mbl-graph-expand svg {
+  display: block;
+}
+
+.mbl-graph-svg {
+  flex: 0 1 auto;
+  align-self: center;
+  width: calc(100% - 0.8rem);
+  aspect-ratio: 1 / 1;
+  max-height: calc(100% - 0.8rem);
+  cursor: grab;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.4rem;
+  margin: 0.4rem;
+  background: var(--md-default-bg-color);
+  box-sizing: border-box;
+}
+
+.mbl-graph-svg:active { cursor: grabbing; }
+
+.mbl-graph-node {
+  fill: var(--md-default-fg-color);
+  cursor: pointer;
+  transition: fill 120ms ease-out, opacity 150ms ease-out;
+}
+
+.mbl-graph-node:hover {
+  fill: var(--md-accent-fg-color);
+}
+
+.mbl-graph-node--current { fill: var(--md-primary-fg-color); }
+
+.mbl-graph-node--faded { opacity: 0.18; }
+
+.mbl-graph-link {
+  stroke: var(--md-default-fg-color--lightest);
+  stroke-opacity: 0.8;
+  transition: stroke 150ms ease-out, stroke-opacity 150ms ease-out, stroke-width 150ms ease-out;
+}
+
+.mbl-graph-link--active {
+  stroke: var(--md-accent-fg-color);
+  stroke-opacity: 1;
+  stroke-width: 2;
+}
+
+.mbl-graph-link--faded {
+  stroke-opacity: 0.12;
+}
+
+.mbl-graph-label {
+  font-size: 0.7rem;
+  font-family: var(--md-text-font-family, system-ui), sans-serif;
+  fill: var(--md-default-fg-color--light);
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 150ms ease-out, font-size 150ms ease-out, fill 150ms ease-out;
+  transform-box: fill-box;
+  transform-origin: left center;
+}
+
+.mbl-graph-label--current {
+  fill: var(--md-primary-fg-color);
+  font-weight: 600;
+}
+
+.mbl-graph-label--faded { opacity: 0.25; }
+
+.mbl-graph-label--hover {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+/* Modal overlay for expanded view */
+.mbl-graph-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+}
+
+.mbl-graph-modal--open {
+  opacity: 1;
+}
+
+.mbl-graph-modal--closing {
+  opacity: 0;
+}
+
+.mbl-graph-modal__inner {
+  background: var(--md-default-bg-color);
+  width: min(90vw, 1100px);
+  height: min(85vh, 800px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.6rem;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  transform: scale(0.92);
+  opacity: 0;
+  transition: transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 200ms ease-out;
+}
+
+.mbl-graph-modal--open .mbl-graph-modal__inner {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.mbl-graph-modal--closing .mbl-graph-modal__inner {
+  transform: scale(0.92);
+  opacity: 0;
+}
