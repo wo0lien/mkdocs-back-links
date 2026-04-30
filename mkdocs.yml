@@ -10,6 +10,7 @@ nav:
   - Guides:
       - guides/install.md
       - guides/configure.md
+      - guides/customizing.md
   - Concepts:
       - concepts/architecture.md
       - concepts/internals.md

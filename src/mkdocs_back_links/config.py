@@ -12,6 +12,24 @@ class _BacklinksSection(Config):
     section_collapse_threshold = c.Type(int, default=3)
 
 
+class _GraphColors(Config):
+    """Per-element color overrides. Empty string = keep the Material default.
+
+    Each value is emitted as the corresponding `--mbl-graph-*` CSS custom
+    property at `:root` scope, so any valid CSS color (hex, rgb, hsl, var())
+    is accepted.
+    """
+
+    node = c.Type(str, default='')
+    section = c.Type(str, default='')
+    current_fill = c.Type(str, default='')
+    current_stroke = c.Type(str, default='')
+    link = c.Type(str, default='')
+    highlight = c.Type(str, default='')
+    label = c.Type(str, default='')
+    current_label = c.Type(str, default='')
+
+
 class _GraphSection(Config):
     enabled = c.Type(bool, default=True)
     height = c.Type(str, default='40vh')
@@ -22,6 +40,7 @@ class _GraphSection(Config):
     section_cluster_threshold = c.Type(int, default=2)
     hide_when_orphan = c.Type(bool, default=True)
     exclude = c.ListOfItems(c.Type(str), default=[])
+    colors = c.SubConfig(_GraphColors)
 
 
 class BackLinksConfig(Config):

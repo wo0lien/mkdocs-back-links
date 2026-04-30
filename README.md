@@ -39,7 +39,21 @@ plugins:
         exclude:
           - "tags.md"
           - "404.md"
+        colors:                         # any valid CSS color (hex, rgb, hsl, var(...))
+          node: ""                      # page node fill (default: blue grey 800/100)
+          section: ""                   # section node fill (default: blue grey 200/400)
+          current_fill: ""              # current page node fill (default: var(--md-accent-fg-color))
+          current_stroke: ""            # current page node stroke (default: var(--md-primary-fg-color))
+          link: ""                      # link/edge stroke (default: var(--md-default-fg-color--lighter))
+          highlight: ""                 # hover/active highlight (default: var(--md-accent-fg-color))
+          label: ""                     # label text fill (default: var(--md-default-fg-color--light))
+          current_label: ""             # current page label fill (default: var(--md-primary-fg-color))
 ```
+
+Each `colors.*` field maps to a `--mbl-graph-*` CSS custom property emitted
+at `:root`. Any value left empty keeps the Material default. You can also
+override the same variables directly from your own `extra.css` if you prefer
+not to put colors in `mkdocs.yml`.
 
 ## Per-page overrides
 
